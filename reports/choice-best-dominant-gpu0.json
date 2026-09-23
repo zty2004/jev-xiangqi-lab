@@ -1,0 +1,58 @@
+{
+  "status": "candidate-not-promoted",
+  "host": "dash-dev-191-root",
+  "physicalGpuIndex": 0,
+  "physicalGpuUuid": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "cudaVisibleDevices": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "otherGpuUsedByThisRun": false,
+  "command": "bash train/run_gpu_best_dominant.sh",
+  "trainingCodeSha256": "5fc7814d1bf2affb46b8e7d91d266dc275865b8c24ec618545a3620a3425d762",
+  "scriptSha256": "ed734cd7cdf29754caee27802b2e2c14a1e37e3c15e505a5ce0e6c100fd2a0cc",
+  "model": "models/choice-best-dominant-gpu0.pt",
+  "modelSha256": "1ed5c4784b978a47cf82aa7e1f67fddc658a8221c52fb8984b698dcbfa509c5b",
+  "priorModel": "models/choice-21k-gpu0.pt",
+  "priorModelSha256": "d9063fe883bf0a111f0563341f4e89dd9be2d206ffc998118e4b4399567f6550",
+  "teacherTargetAudit": {
+    "openingSource": { "positions": 5000, "bestDifferentFromCandidateRankOne": 828, "bestAbsentFromCandidateList": 104 },
+    "gameSource": { "positions": 16387, "bestDifferentFromCandidateRankOne": 3223, "bestAbsentFromCandidateList": 463 },
+    "priorTargetMeanMassOnFinalBest": 0.486,
+    "change": "Increase the explicit probability mass on Pikafish's final bestmove from 0.3 to 0.7; distribute the remainder according to the existing MultiPV scores. Opening-book targets are unchanged."
+  },
+  "training": {
+    "seed": 20260923,
+    "inputChannels": 16,
+    "channels": 64,
+    "residualBlocks": 4,
+    "valueHead": "existing scalar teacher score head",
+    "valueLossWeight": 0.2,
+    "batchSize": 256,
+    "learningRate": 0.001,
+    "epochsMaximum": 12,
+    "earlyStopPatience": 3,
+    "bestEpoch": 2,
+    "stoppedAtEpoch": 5,
+    "splitSizes": { "train": 16221, "validation": 2304, "calibration": 2202, "test": 2174 },
+    "temperature": 1.0
+  },
+  "sameHeldoutTest": {
+    "positions": 2174,
+    "candidate": { "top1": 0.22171113155473782, "nll": 2.7864445997867726, "brier": 0.8810691787709637, "ece10": 0.024681240986782472 },
+    "prior": { "top1": 0.20883164673413063, "nll": 2.8535834771216453, "brier": 0.8867074029645244, "ece10": 0.019641829896187058 }
+  },
+  "testAfterOpeningLibraryExclusion": {
+    "positions": 2133,
+    "testGames": 22,
+    "candidate": { "top1": 0.21987810595405533, "nll": 2.7932182852741714, "brier": 0.8813772752035742, "ece10": 0.025187763071540817 },
+    "prior": { "top1": 0.20815752461322082, "nll": 2.859029470268832, "brier": 0.8866832615118657, "ece10": 0.020357262713426836 },
+    "pairedGameBootstrap": {
+      "seed": 20260923,
+      "samples": 2000,
+      "candidateTop1Gain": 0.011720581340834507,
+      "top1Gain95Interval": [-0.00328484279680901, 0.028216704288939052],
+      "candidateNllReduction": 0.06581118499466054,
+      "nllReduction95Interval": [0.0380739686906361, 0.09777590513621162]
+    }
+  },
+  "reproduceComparison": "python3 train/compare_choice_models.py --model-a models/choice-21k-gpu0.pt --model-b models/choice-best-dominant-gpu0.pt --data data/teacher-openings-5000.jsonl --data data/teacher-games-160.jsonl --exclude-data data/opening-positions.jsonl --device cpu",
+  "interpretation": "The candidate improves held-out teacher move NLL. The game-cluster bootstrap interval for top-1 gain crosses zero. Teacher imitation alone does not establish match strength, so the candidate remains inactive pending paired matches."
+}

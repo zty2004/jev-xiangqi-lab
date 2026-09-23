@@ -73,7 +73,7 @@ def encode_moves(moves, turn):
     return torch.tensor([[square_index(move[:2], turn), square_index(move[2:], turn)] for move in moves], dtype=torch.long)
 
 
-def target_distribution(row):
+def target_distribution(row, best_weight=0.3):
     moves = row["legal"]
     if row.get("source") == "opening-book":
         targets = torch.tensor([row["policy"].get(move, 0.0) for move in moves], dtype=torch.float32)
@@ -84,10 +84,10 @@ def target_distribution(row):
         scores = torch.tensor([30000 * (1 if item["score"] > 0 else -1) if item["scoreType"] == "mate" else item["score"] for item in candidates], dtype=torch.float32)
         weights = torch.softmax((scores - scores.max()).clamp(min=-1500) / 120, dim=0)
         for item, weight in zip(candidates, weights):
-            targets[moves.index(item["move"])] += 0.7 * weight
+            targets[moves.index(item["move"])] += (1 - best_weight) * weight
     else:
-        targets[moves.index(row["best"])] += 0.7
-    targets[moves.index(row["best"])] += 0.3
+        targets[moves.index(row["best"])] += 1 - best_weight
+    targets[moves.index(row["best"])] += best_weight
     value = 0.0
     if candidates:
         first = candidates[0]
@@ -108,7 +108,7 @@ class TeacherDataset(Dataset):
     def __getitem__(self, index):
         row = self.rows[index]
         turn = row["fen"].split()[1]
-        policy, value = target_distribution(row)
+        policy, value = target_distribution(row, 0.7 if self.policy_target == "dominant" else 0.3)
         if self.policy_target == "best" and row.get("source") != "opening-book":
             policy = torch.zeros_like(policy)
             policy[row["legal"].index(row["best"])] = 1
@@ -486,7 +486,7 @@ def main():
     train_parser.add_argument("--opening-samples", type=int, default=2000)
     train_parser.add_argument("--value-head", choices=["scalar", "wdl"], default="scalar")
     train_parser.add_argument("--value-loss-weight", type=float, default=0.2)
-    train_parser.add_argument("--policy-target", choices=["soft", "best"], default="soft")
+    train_parser.add_argument("--policy-target", choices=["soft", "dominant", "best"], default="soft")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
     train_parser.add_argument("--output", default="choice-model.pt")
     train_parser.add_argument("--epochs", type=int, default=10)

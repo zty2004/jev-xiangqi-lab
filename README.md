@@ -73,6 +73,8 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --da
 
 下一版实验让模型同时读取前两个盘面、半回合计数与当前局面的重复次数，并用有终局结果的对局训练胜/和/负头。两套 GPU 0 候选权重与训练配置见[历史模型报告](reports/history-wdl-gpu0.json)。混合数据版本在同一留出集的教师最佳招一致率为 20.42%，旧模型为 20.88%；胜负头的 NLL 为 0.781，差于训练类别频率基线的 0.765。在传入完整走棋历史后，该模型的[每步 5 秒成对评测](benchmark-choice-history-mixed-openings-5s.jsonl)对 Pikafish 得 0/2。两套新权重仍为实验候选，网页继续使用旧模型。
 
+教师标签审计发现，约 19% 的局面中最终最佳招与保存的候选评分首位不同。把软标签中最终最佳招的显式权重从 0.3 提高到 0.7 后，[新候选模型](reports/choice-best-dominant-gpu0.json)在同一留出集的最佳招一致率从 20.88% 升至 22.17%，NLL 从 2.854 降至 2.786。按 22 局重采样的 NLL 改善区间为 0.038–0.098；最佳招一致率改善区间仍跨过零。新权重暂未替换网页模型。
+
 ```sh
 mkdir -p data models
 node teacher.js --pikafish /absolute/path/to/Pikafish-MacOS-universal --positions 1000 --movetime 100 --output data/teacher-1000.jsonl

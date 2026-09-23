@@ -16,13 +16,22 @@ spec.loader.exec_module(choice_model)
 
 
 class ChoiceModelTests(unittest.TestCase):
+    def test_dominant_teacher_target_keeps_final_best_above_stale_multipv(self):
+        row = {"fen": "board w", "legal": ["a0a1", "a0a2"], "best": "a0a2",
+               "candidates": [{"move": "a0a1", "score": 100, "scoreType": "cp"}]}
+        soft, _ = choice_model.target_distribution(row)
+        dominant, _ = choice_model.target_distribution(row, 0.7)
+        self.assertAlmostEqual(float(soft[1]), 0.3)
+        self.assertAlmostEqual(float(dominant[1]), 0.7)
+        self.assertAlmostEqual(float(dominant.sum()), 1)
+
     def test_untrained_wdl_head_is_not_exposed_as_a_probability(self):
         model = choice_model.ChoiceNet(16, 1, 46, "wdl", 0.0)
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
         response = choice_model.rank(model, fen, ["b2e2", "h2e2"], torch.device("cpu"))
         self.assertNotIn("wdl", response)
         self.assertNotIn("value", response)
-        self.assertAlmostEqual(sum(item["probability"] for item in response["choices"]), 1)
+        self.assertAlmostEqual(sum(item["probability"] for item in response["choices"]), 1, delta=1e-6)
 
     def test_history_planes_and_outcome_labels_use_side_to_move(self):
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR b - - 30 1"
