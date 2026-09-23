@@ -1,0 +1,11 @@
+{
+  "name": "jev-xiangqi-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "benchmark": "node benchmark.js"
+  },
+  "engines": { "node": ">=20" }
+}

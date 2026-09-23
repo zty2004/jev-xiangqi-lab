@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+.venv/
+__pycache__/
+*.log
+*.pt
+*.pth
+*.onnx
+*.nnue
+benchmark-results.jsonl

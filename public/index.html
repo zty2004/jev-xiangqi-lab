@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>中国象棋 · Jev 实验室</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">XIANGQI ENGINE LAB</p>
+        <h1>中国象棋<span>实验室</span></h1>
+        <p class="subtitle">自研搜索引擎 · 本地对弈基线</p>
+      </div>
+      <span class="mode">离线基线模式</span>
+    </header>
+    <section class="layout">
+      <div class="board-wrap">
+        <div class="board" id="board" aria-label="中国象棋棋盘">
+          <svg class="board-lines" viewBox="0 0 800 900" preserveAspectRatio="none" aria-hidden="true">
+            <rect x="40" y="40" width="720" height="810" fill="none" stroke="currentColor" stroke-width="3"/>
+            <g stroke="currentColor" stroke-width="1.4">
+              <path d="M40 130H760 M40 220H760 M40 310H760 M40 400H760 M40 490H760 M40 580H760 M40 670H760 M40 760H760"/>
+              <path d="M130 40V400 M220 40V400 M310 40V400 M400 40V400 M490 40V400 M580 40V400 M670 40V400"/>
+              <path d="M130 490V850 M220 490V850 M310 490V850 M400 490V850 M490 490V850 M580 490V850 M670 490V850"/>
+              <path d="M310 40L490 220 M490 40L310 220 M310 670L490 850 M490 670L310 850"/>
+            </g>
+            <text x="220" y="463" text-anchor="middle">楚 河</text><text x="580" y="463" text-anchor="middle">汉 界</text>
+          </svg>
+          <div id="pieces" class="pieces"></div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="status-card">
+          <span class="section-label">当前棋局</span>
+          <h2 id="status">正在准备棋局…</h2>
+          <p id="detail">你执红棋，先手。</p>
+        </div>
+        <div class="control-card">
+          <label for="side">你的棋子</label>
+          <select id="side"><option value="red">红棋 · 先手</option><option value="black">黑棋 · 后手</option></select>
+          <label for="time">电脑思考时间</label>
+          <select id="time"><option value="500">快速 · 0.5 秒</option><option value="1000" selected>标准 · 1 秒</option><option value="3000">深入 · 3 秒</option><option value="5000">评测 · 5 秒</option></select>
+          <div class="button-row"><button id="new" class="primary">重新开始</button><button id="undo">悔棋</button></div>
+        </div>
+        <div class="moves-card">
+          <div class="card-heading"><span class="section-label">对局记录</span><span id="move-count">0 步</span></div>
+          <ol id="moves"></ol>
+        </div>
+        <details class="fen-card">
+          <summary>导入棋局 FEN</summary>
+          <textarea id="fen" rows="3" spellcheck="false" placeholder="粘贴中国象棋 FEN"></textarea>
+          <button id="load">加载棋局</button>
+        </details>
+      </aside>
+    </section>
+    <footer>本地基线用于验证规则、搜索与评测。Jev 联网选招将在 API Key 就绪后接入。</footer>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
