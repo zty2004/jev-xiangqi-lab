@@ -1,10 +1,9 @@
-import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createWriteStream, readFileSync } from 'node:fs';
 import path from 'node:path';
-import readline from 'node:readline';
 import { gameResult, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 import { loadOpeningLines } from './src/opening-book.js';
+import { PikafishTeacher } from './src/pikafish-teacher.js';
 
 const args = process.argv.slice(2);
 function option(name, fallback) { const i = args.indexOf(name); return i < 0 ? fallback : args[i + 1]; }
@@ -32,54 +31,6 @@ function randomGenerator(value) {
 }
 const random = randomGenerator(seed);
 
-class Teacher {
-  constructor(filename) {
-    this.process = spawn(filename, [], { cwd: path.dirname(path.resolve(filename)), stdio: ['pipe', 'pipe', 'pipe'] });
-    this.waiters = []; this.lines = []; this.stderr = '';
-    readline.createInterface({ input: this.process.stdout }).on('line', line => {
-      for (const waiter of [...this.waiters]) waiter(line);
-    });
-    this.process.stderr.on('data', chunk => { this.stderr = (this.stderr + chunk.toString()).slice(-2000); });
-  }
-  send(command) { this.process.stdin.write(command + '\n'); }
-  until(predicate, timeout = 10000, collect = null) {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.waiters = this.waiters.filter(item => item !== onLine); reject(new Error(`Pikafish timed out: ${this.stderr}`)); }, timeout);
-      const onLine = line => {
-        collect?.(line);
-        if (!predicate(line)) return;
-        clearTimeout(timer); this.waiters = this.waiters.filter(item => item !== onLine); resolve(line);
-      };
-      this.waiters.push(onLine);
-    });
-  }
-  async ready() {
-    const uci = this.until(line => line === 'uciok'); this.send('uci'); await uci;
-    this.send('setoption name MultiPV value 8');
-    const ready = this.until(line => line === 'readyok'); this.send('isready'); await ready;
-  }
-  async analyse(fen, ms, historyMoves = null) {
-    const byDepth = new Map();
-    const finished = this.until(line => line.startsWith('bestmove '), ms + 20000, line => {
-      if (!line.startsWith('info ') || !line.includes(' multipv ') || !line.includes(' pv ')) return;
-      const depth = Number(line.match(/\bdepth (\d+)/)?.[1]);
-      const rank = Number(line.match(/\bmultipv (\d+)/)?.[1]);
-      const score = line.match(/\bscore (cp|mate) (-?\d+)/);
-      const move = line.match(/\bpv ([a-i][0-9][a-i][0-9])/);
-      if (!depth || !rank || !score || !move) return;
-      if (!byDepth.has(depth)) byDepth.set(depth, new Map());
-      byDepth.get(depth).set(rank, { move: move[1], score: Number(score[2]), scoreType: score[1] });
-    });
-    this.send(historyMoves ? `position startpos${historyMoves.length ? ` moves ${historyMoves.join(' ')}` : ''}` : `position fen ${fen}`);
-    this.send(`go movetime ${ms}`);
-    const line = await finished, best = line.split(/\s+/)[1];
-    const selectedDepth = [...byDepth.keys()].sort((a, b) => byDepth.get(b).size - byDepth.get(a).size || b - a)[0] || 0;
-    const candidates = [...(byDepth.get(selectedDepth)?.entries() || [])].sort((a, b) => a[0] - b[0]).map(([rank, item]) => ({ rank, ...item }));
-    return { best, depth: selectedDepth, candidates };
-  }
-  close() { this.send('quit'); this.process.kill(); }
-}
-
 const openings = openingBook ? loadOpeningLines(openingBook, openingPlies) :
   [[], ['b2e2', 'b7e7'], ['h2e2', 'h7e7'], ['b0c2', 'b9c7'], ['h0g2', 'h9g7']];
 if (openingBook) {
@@ -96,7 +47,7 @@ function advance(position, notation) {
 }
 
 async function main() {
-  const teacher = new Teacher(binary), writer = createWriteStream(output, { flags: 'w' });
+  const teacher = new PikafishTeacher(binary), writer = createWriteStream(output, { flags: 'w' });
   const gameWriter = gamesOutput ? createWriteStream(gamesOutput, { flags: 'w' }) : null;
   try {
     await teacher.ready();
