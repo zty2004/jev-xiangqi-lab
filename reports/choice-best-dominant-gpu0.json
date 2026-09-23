@@ -54,5 +54,18 @@
     }
   },
   "reproduceComparison": "python3 train/compare_choice_models.py --model-a models/choice-21k-gpu0.pt --model-b models/choice-best-dominant-gpu0.pt --data data/teacher-openings-5000.jsonl --data data/teacher-games-160.jsonl --exclude-data data/opening-positions.jsonl --device cpu",
-  "interpretation": "The candidate improves held-out teacher move NLL. The game-cluster bootstrap interval for top-1 gain crosses zero. Teacher imitation alone does not establish match strength, so the candidate remains inactive pending paired matches."
+  "externalMatch": {
+    "path": "benchmark-choice-best-dominant-openings-5s.jsonl",
+    "sha256": "7e7e351c1f37471a907d0b40fc9ad43f96b7661524e3b09d1e6e0914043c04b4",
+    "opponent": "Pikafish 2026-09-06",
+    "rulesSha256": "85a442d781d15b7ed47c26904414fb1882db9d51a70c3c99f85d59272370b1b7",
+    "moveTimeMsPerSide": 5000,
+    "openingPlies": 8,
+    "score": 0,
+    "games": [
+      { "modelSide": "red", "winner": "black", "reason": "将死", "plies": 68 },
+      { "modelSide": "black", "winner": "red", "reason": "将死", "plies": 49 }
+    ]
+  },
+  "interpretation": "The candidate improves held-out teacher move NLL. The game-cluster bootstrap interval for top-1 gain crosses zero. Both fixed-time games against Pikafish were lost, so the candidate remains inactive."
 }
