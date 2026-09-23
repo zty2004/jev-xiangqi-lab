@@ -23,7 +23,7 @@ CHOICE_MODEL=/absolute/path/to/models/choice-openings-5000.pt npm start
 
 `node uci.js` 启动 UCI 棋引擎，支持 `uci`、`isready`、`ucinewgame`、`position startpos/fen ... moves ...`、`go movetime N`、`go depth N`、`go perft N` 和 `quit`。
 
-网页服务提供 `GET /api/new`、`POST /api/state`、`POST /api/move`、`POST /api/ai`。走法采用 ICCS 坐标，例如 `b2e2`；FEN 与 Pikafish 使用的常见中国象棋格式兼容。
+网页服务提供 `GET /api/new`、`POST /api/state`、`POST /api/move`、`POST /api/ai`。`/api/move` 可提交中文棋谱走法，例如 `炮二平五`；返回值、网页走棋记录和引擎推荐均提供中文棋谱。鼠标落子、UCI 和训练文件内部仍采用 ICCS 坐标，以兼容 FEN 与引擎协议。
 
 搜索采用迭代加深、Alpha-Beta、置换表、吃子优先的走法排序与吃子延伸。设置 `CHOICE_MODEL` 后，模型先给全部合法走法分配概率；搜索用概率安排根节点的搜索顺序，再用搜索分数决定最终走法。Pikafish 不参与正式选招，只用作数据教师和外部评测对手。
 
@@ -106,7 +106,7 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --op
 
 实际对弈现使用同一数据集按开局分类的 6,963 份大师对局 PGN：去掉 409 份重复后，6,554 局前 24 个半回合全部合法，汇成 51,009 个局面、56,835 个合法候选招。每招保留大师对局出现次数、ECCO C 类（中炮对屏风马）出现次数和原棋谱示例。黑方遇到中炮时优先走 C 类的主流变化；目前“炮二平五”后稳定走“马８进７”，镜像开局稳定走“马２进３”。[ECCO 2004 分类说明](https://www.xqbase.com/ecco/ecco_intro.htm)只定义开局类别，不证明某招必然最优；本书的频次也不是胜率。来源、失败项和校验见[大师开局库报告](reports/master-opening-book.json)。
 
-对弈时从至少 5 局大师对局支持的走法中，保留出现次数达到最多走法一半的前 3 招，再让本地选择模型排序并由自研搜索决定；无合格书招则正常搜索。最长使用到第 24 个半回合。网页的走棋记录、推荐和后续推演显示中文记谱。UCI 通信和训练文件继续使用坐标协议。可用 `OPENING_BOOK=off` 关闭对弈开局库以做对照实验。
+对弈时从至少 5 局大师对局支持的走法中，保留出现次数达到最多走法四分之一的前 3 招，再让本地选择模型排序并由自研搜索决定；无合格书招则正常搜索。最长使用到第 24 个半回合。中炮第一应手“马８进７”与后续屏风马体系的两种常见变化经[限时 Pikafish 分析](reports/opening-response-check.json)交叉检查。网页的走棋记录、推荐和后续推演显示中文记谱。UCI 通信和训练文件继续使用坐标协议。可用 `OPENING_BOOK=off` 关闭对弈开局库以做对照实验。
 
 重新导入或生成训练局面：
 

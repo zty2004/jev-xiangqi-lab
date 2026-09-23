@@ -58,6 +58,6 @@ export function masterOpeningCandidates(position, book, { minGames = 5, maxMoves
       a.move.localeCompare(b.move));
   if (!eligible.length) return [];
   const first = screenHorse ? eligible[0].screenHorseGames : eligible[0].masterGames;
-  return eligible.filter(item => (screenHorse ? item.screenHorseGames : item.masterGames) >= first * 0.5)
+  return eligible.filter(item => (screenHorse ? item.screenHorseGames : item.masterGames) >= first * 0.25)
     .slice(0, maxMoves).map(item => ({ ...item, mirrored: useMirror, screenHorseRepertoire: screenHorse }));
 }

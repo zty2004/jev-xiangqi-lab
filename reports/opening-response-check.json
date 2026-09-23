@@ -1,0 +1,169 @@
+{
+  "purpose": "Independent finite-time check of key central-cannon book responses; Pikafish is not used during actual play",
+  "masterOpeningBookSha256": "8469e669199a5a4d8bbf152f5198577118c147265e1095e2f58083be21fc123a",
+  "teacherBinarySha256": "3a11f9034ef723bb4068e4cf88a79a12d99507474ba118fa916ec2cecd4f4abe",
+  "moveTimeMs": 5000,
+  "positions": [
+    {
+      "openingMoves": [
+        "b2e2"
+      ],
+      "fen": "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/4C2C1/9/RNBAKABNR b - - 1 1",
+      "teacherBest": "b9c7",
+      "teacherBestChinese": "马８进７",
+      "teacherDepth": 19,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "b9c7",
+          "score": -24,
+          "scoreType": "cp",
+          "chinese": "马８进７"
+        },
+        {
+          "rank": 2,
+          "move": "h9g7",
+          "score": -27,
+          "scoreType": "cp",
+          "chinese": "马２进３"
+        },
+        {
+          "rank": 3,
+          "move": "g9e7",
+          "score": -35,
+          "scoreType": "cp",
+          "chinese": "象３进５"
+        },
+        {
+          "rank": 4,
+          "move": "h7e7",
+          "score": -37,
+          "scoreType": "cp",
+          "chinese": "炮２平５"
+        },
+        {
+          "rank": 5,
+          "move": "b7e7",
+          "score": -39,
+          "scoreType": "cp",
+          "chinese": "炮８平５"
+        },
+        {
+          "rank": 6,
+          "move": "f9e8",
+          "score": -54,
+          "scoreType": "cp",
+          "chinese": "士４进５"
+        },
+        {
+          "rank": 7,
+          "move": "c9e7",
+          "score": -63,
+          "scoreType": "cp",
+          "chinese": "象７进５"
+        },
+        {
+          "rank": 8,
+          "move": "d9e8",
+          "score": -80,
+          "scoreType": "cp",
+          "chinese": "士６进５"
+        }
+      ],
+      "bookMoves": [
+        {
+          "move": "b9c7",
+          "chinese": "马８进７",
+          "masterGames": 2940,
+          "screenHorseGames": 2932
+        }
+      ]
+    },
+    {
+      "openingMoves": [
+        "b2e2",
+        "b9c7",
+        "b0c2",
+        "a9b9",
+        "a0b0"
+      ],
+      "fen": "1rbakabnr/9/1cn4c1/p1p1p1p1p/9/9/P1P1P1P1P/2N1C2C1/9/1RBAKABNR b - - 5 3",
+      "teacherBest": "c6c5",
+      "teacherBestChinese": "卒７进１",
+      "teacherDepth": 18,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "c6c5",
+          "score": -28,
+          "scoreType": "cp",
+          "chinese": "卒７进１"
+        },
+        {
+          "rank": 2,
+          "move": "h9g7",
+          "score": -33,
+          "scoreType": "cp",
+          "chinese": "马２进３"
+        },
+        {
+          "rank": 3,
+          "move": "g6g5",
+          "score": -33,
+          "scoreType": "cp",
+          "chinese": "卒３进１"
+        },
+        {
+          "rank": 4,
+          "move": "g9e7",
+          "score": -36,
+          "scoreType": "cp",
+          "chinese": "象３进５"
+        },
+        {
+          "rank": 5,
+          "move": "b7b3",
+          "score": -37,
+          "scoreType": "cp",
+          "chinese": "炮８进４"
+        },
+        {
+          "rank": 6,
+          "move": "h7e7",
+          "score": -48,
+          "scoreType": "cp",
+          "chinese": "炮２平５"
+        },
+        {
+          "rank": 7,
+          "move": "b7b5",
+          "score": -54,
+          "scoreType": "cp",
+          "chinese": "炮８进２"
+        },
+        {
+          "rank": 8,
+          "move": "c9e7",
+          "score": -66,
+          "scoreType": "cp",
+          "chinese": "象７进５"
+        }
+      ],
+      "bookMoves": [
+        {
+          "move": "h9g7",
+          "chinese": "马２进３",
+          "masterGames": 1394,
+          "screenHorseGames": 1394
+        },
+        {
+          "move": "c6c5",
+          "chinese": "卒７进１",
+          "masterGames": 544,
+          "screenHorseGames": 544
+        }
+      ]
+    }
+  ],
+  "limitations": "Two queried positions and five-second MultiPV scores do not prove optimality or match strength."
+}

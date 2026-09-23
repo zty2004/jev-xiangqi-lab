@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chooseMove } from './src/engine.js';
-import { formatChineseLine, formatChineseMove } from './src/chinese-notation.js';
+import { chineseMove, formatChineseLine, formatChineseMove } from './src/chinese-notation.js';
 import { LocalChoice } from './src/local-choice.js';
 import { loadMasterOpeningBook, masterOpeningCandidates } from './src/opening-book.js';
 import { gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
@@ -58,9 +58,12 @@ const server = http.createServer(async (request, response) => {
       json(response, 200, view(position, data.history || []));
     } else if (request.method === 'POST' && url.pathname === '/api/move') {
       const data = await body(request), position = parseFen(data.fen);
-      const move = legalMoves(position).find(candidate => moveName(candidate) === data.move);
+      let notation = data.move;
+      if (typeof notation !== 'string') return json(response, 400, { error: '请提供中文棋谱走法' });
+      if (!/^[a-i][0-9][a-i][0-9]$/.test(notation)) notation = chineseMove(position, notation);
+      const move = legalMoves(position).find(candidate => moveName(candidate) === notation);
       if (!move) return json(response, 400, { error: '这一步不符合象棋规则' });
-      const moveChinese = formatChineseMove(position, data.move);
+      const moveChinese = formatChineseMove(position, notation);
       const next = makeMove(position, move), history = [...(data.history || []), positionKey(next)];
       json(response, 200, { ...view(next, history), move: moveName(move), moveChinese, history });
     } else if (request.method === 'POST' && url.pathname === '/api/ai') {

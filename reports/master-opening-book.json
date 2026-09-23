@@ -444,7 +444,7 @@
   "runtimePolicy": {
     "maximumPly": 24,
     "minimumMasterGames": 5,
-    "supportRelativeToBest": 0.5,
+    "supportRelativeToBest": 0.25,
     "maximumCandidateMoves": 3,
     "blackScreenHorsePreference": "If the position has a move in at least five ECCO C-class master games, consider only moves from that family.",
     "mirrorFallback": true,
