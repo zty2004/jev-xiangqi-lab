@@ -1,6 +1,7 @@
 """Train a local Jev-style legal-move choice model from Pikafish teacher rows."""
 
 import argparse
+import hashlib
 import json
 import math
 import random
@@ -13,6 +14,14 @@ from torch.utils.data import DataLoader, Dataset
 
 PIECES = "KABNRCPkabnrcp"
 FILES = "abcdefghi"
+
+
+def sha256_file(filename):
+    digest = hashlib.sha256()
+    with open(filename, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def encode_position(fen):
@@ -147,19 +156,30 @@ def load_rows(filename):
 
 def split_rows(rows, seed):
     games = sorted({row["game"] for row in rows})
-    if len(games) >= 2:
-        holdout = {game for game in games if game % 10 == 0}
-        if not holdout or len(holdout) == len(games):
-            holdout = {games[-1]}
-        validation = [row for row in rows if row["game"] in holdout]
-        validation_keys = {" ".join(row["fen"].split()[:2]) for row in validation}
-        training = [row for row in rows if row["game"] not in holdout and " ".join(row["fen"].split()[:2]) not in validation_keys]
-        return training, validation
-    rng = random.Random(seed)
-    copied = rows[:]
-    rng.shuffle(copied)
-    cutoff = max(1, len(copied) // 5)
-    return copied[cutoff:], copied[:cutoff]
+    if len(games) < 4:
+        raise ValueError("need at least four teacher games for disjoint train/validation/calibration/test splits")
+    shuffled = games[:]
+    random.Random(seed).shuffle(shuffled)
+    game_sets = [set(shuffled[index::10]) for index in (0, 1, 2)]
+    if not all(game_sets):
+        raise ValueError("need at least three held-out teacher games")
+    # Test has first claim on a repeated position; no identical board/turn can cross splits.
+    def unique(items, excluded):
+        seen = set(excluded)
+        result = []
+        for row in items:
+            key = " ".join(row["fen"].split()[:2])
+            if key not in seen:
+                result.append(row)
+                seen.add(key)
+        return result, seen
+    test, test_keys = unique((row for row in rows if row["game"] in game_sets[2]), set())
+    calibration, calibration_keys = unique((row for row in rows if row["game"] in game_sets[1]), test_keys)
+    validation, validation_keys = unique((row for row in rows if row["game"] in game_sets[0]), calibration_keys)
+    training, _ = unique((row for row in rows if all(row["game"] not in group for group in game_sets)), validation_keys)
+    if not all((training, validation, calibration, test)):
+        raise ValueError("one split is empty after removing repeated positions")
+    return training, validation, calibration, test
 
 
 def select_device(name):
@@ -188,14 +208,57 @@ def evaluate(model, loader, device):
     return loss_sum / total, hits / total
 
 
+def collect_predictions(model, rows, device, batch_size):
+    loader = DataLoader(TeacherDataset(rows), batch_size=batch_size, collate_fn=collate)
+    predictions = []
+    model.eval()
+    with torch.no_grad():
+        for boards, moves, _, mask, _, best, _ in loader:
+            logits, _ = model(boards.to(device), moves.to(device), mask.to(device))
+            counts = mask.sum(dim=1).tolist()
+            predictions.extend((logits[i, :count].cpu(), int(best[i])) for i, count in enumerate(counts))
+    return predictions
+
+
+def policy_metrics(predictions, temperature):
+    if not predictions:
+        raise ValueError("no positions to evaluate")
+    nll = brier = hits = confidence_sum = 0.0
+    bins = [[0, 0.0, 0.0] for _ in range(10)]
+    for logits, best in predictions:
+        probabilities = torch.softmax(logits / temperature, dim=0)
+        chosen = int(probabilities.argmax())
+        hit = float(chosen == best)
+        confidence = float(probabilities[chosen])
+        nll -= math.log(max(float(probabilities[best]), 1e-30))
+        brier += float((probabilities.square().sum() - 2 * probabilities[best] + 1).item())
+        hits += hit
+        confidence_sum += confidence
+        bucket = bins[min(9, int(confidence * 10))]
+        bucket[0] += 1
+        bucket[1] += confidence
+        bucket[2] += hit
+    count = len(predictions)
+    ece = sum(abs(accuracy - confidence) for size, confidence, accuracy in bins if size) / count
+    return {"count": count, "top1": hits / count, "nll": nll / count,
+            "brier": brier / count, "mean_top_probability": confidence_sum / count, "ece10": ece}
+
+
+def fit_temperature(predictions):
+    # Scalar temperature only. Calibration rows do not update network weights.
+    candidates = [math.exp(math.log(0.25) + index * math.log(32) / 160) for index in range(161)]
+    return min(candidates, key=lambda value: policy_metrics(predictions, value)["nll"])
+
+
 def train(args):
     torch.manual_seed(args.seed)
     rows = load_rows(args.data)
-    training, validation = split_rows(rows, args.seed)
+    training, validation, calibration, test = split_rows(rows, args.seed)
     if args.opening_data:
         opening_rows = [row for row in load_rows(args.opening_data) if row.get("source") == "opening-book" and row.get("policy")]
-        validation_keys = {" ".join(row["fen"].split()[:2]) for row in validation}
-        opening_rows = [row for row in opening_rows if " ".join(row["fen"].split()[:2]) not in validation_keys]
+        heldout_keys = {" ".join(row["fen"].split()[:2]) for row in validation + calibration + test}
+        training_keys = {" ".join(row["fen"].split()[:2]) for row in training}
+        opening_rows = [row for row in opening_rows if " ".join(row["fen"].split()[:2]) not in heldout_keys | training_keys]
         random.Random(args.seed).shuffle(opening_rows)
         training.extend(opening_rows[:args.opening_samples])
     if not training:
@@ -205,7 +268,7 @@ def train(args):
     validation_loader = DataLoader(TeacherDataset(validation), batch_size=args.batch, collate_fn=collate)
     model = ChoiceNet(args.channels, args.blocks).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
-    print(f"device={device} train={len(training)} validation={len(validation)}", flush=True)
+    print(f"device={device} train={len(training)} validation={len(validation)} calibration={len(calibration)} test={len(test)}", flush=True)
     best_loss = float("inf")
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -222,7 +285,23 @@ def train(args):
         print(f"epoch={epoch} val_loss={validation_loss:.4f} top1={accuracy:.3f}", flush=True)
         if validation_loss < best_loss:
             best_loss = validation_loss
-            torch.save({"state_dict": model.state_dict(), "channels": args.channels, "blocks": args.blocks, "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy}, args.output)
+            torch.save({"state_dict": model.state_dict(), "channels": args.channels, "blocks": args.blocks,
+                        "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
+                        "seed": args.seed, "teacher_sha256": sha256_file(args.data),
+                        "opening_sha256": sha256_file(args.opening_data) if args.opening_data else None,
+                        "split_sizes": {"train": len(training), "validation": len(validation),
+                                        "calibration": len(calibration), "test": len(test)}}, args.output)
+    model, _ = load_model(args.output, device)
+    calibration_predictions = collect_predictions(model, calibration, device, args.batch)
+    temperature = fit_temperature(calibration_predictions)
+    test_predictions = collect_predictions(model, test, device, args.batch)
+    report = {"temperature": temperature, "calibration": policy_metrics(calibration_predictions, temperature),
+              "test_uncalibrated": policy_metrics(test_predictions, 1.0), "test_calibrated": policy_metrics(test_predictions, temperature)}
+    checkpoint = torch.load(args.output, map_location="cpu", weights_only=True)
+    checkpoint["temperature"] = temperature
+    checkpoint["evaluation"] = report
+    torch.save(checkpoint, args.output)
+    print(json.dumps(report), flush=True)
 
 
 def load_model(filename, device):
@@ -230,10 +309,10 @@ def load_model(filename, device):
     model = ChoiceNet(checkpoint["channels"], checkpoint["blocks"]).to(device)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
-    return model
+    return model, float(checkpoint.get("temperature", 1.0))
 
 
-def rank(model, fen, moves, device):
+def rank(model, fen, moves, device, temperature=1.0):
     if not moves:
         return []
     turn = fen.split()[1]
@@ -242,8 +321,11 @@ def rank(model, fen, moves, device):
     mask = torch.ones((1, len(moves)), dtype=torch.bool, device=device)
     with torch.no_grad():
         logits, value = model(board, move_tensor, mask)
-        probabilities = torch.softmax(logits[0], dim=0).cpu().tolist()
-    return {"value": value.item(), "choices": sorted(({"move": move, "probability": probability} for move, probability in zip(moves, probabilities)), key=lambda item: item["probability"], reverse=True)}
+        probabilities = torch.softmax(logits[0] / temperature, dim=0).cpu().tolist()
+    concentration = 1.0 if len(moves) == 1 else max(0.0, min(1.0,
+        1 - sum(-p * math.log(max(p, 1e-30)) for p in probabilities) / math.log(len(moves))))
+    return {"value": value.item(), "concentration": concentration,
+            "choices": sorted(({"move": move, "probability": probability} for move, probability in zip(moves, probabilities)), key=lambda item: item["probability"], reverse=True)}
 
 
 def main():
@@ -269,20 +351,36 @@ def main():
     serve_parser = sub.add_parser("serve")
     serve_parser.add_argument("--model", required=True)
     serve_parser.add_argument("--device", default="auto")
+    evaluate_parser = sub.add_parser("evaluate")
+    evaluate_parser.add_argument("--model", required=True)
+    evaluate_parser.add_argument("--data", required=True)
+    evaluate_parser.add_argument("--seed", type=int, default=20260923)
+    evaluate_parser.add_argument("--batch", type=int, default=128)
+    evaluate_parser.add_argument("--device", default="auto")
+    evaluate_parser.add_argument("--exclude-data", action="append", default=[],
+                                 help="exclude FENs found in this JSONL file; repeat for multiple prior training sources")
     args = parser.parse_args()
     if args.command == "train":
         train(args)
     else:
         device = select_device(args.device)
-        model = load_model(args.model, device)
-        if args.command == "rank":
-            print(json.dumps(rank(model, args.fen, args.moves.split(","), device), ensure_ascii=False))
+        model, temperature = load_model(args.model, device)
+        if args.command == "evaluate":
+            _, _, _, test = split_rows(load_rows(args.data), args.seed)
+            if args.exclude_data:
+                excluded = {" ".join(row["fen"].split()[:2]) for filename in args.exclude_data
+                            for row in load_rows(filename)}
+                test = [row for row in test if " ".join(row["fen"].split()[:2]) not in excluded]
+            predictions = collect_predictions(model, test, device, args.batch)
+            print(json.dumps({"temperature": temperature, "test": policy_metrics(predictions, temperature)}))
+        elif args.command == "rank":
+            print(json.dumps(rank(model, args.fen, args.moves.split(","), device, temperature), ensure_ascii=False))
         else:
             print(json.dumps({"ready": True}), flush=True)
             for line in sys.stdin:
                 try:
                     request = json.loads(line)
-                    print(json.dumps(rank(model, request["fen"], request["moves"], device)), flush=True)
+                    print(json.dumps(rank(model, request["fen"], request["moves"], device, temperature)), flush=True)
                 except Exception as error:
                     print(json.dumps({"error": str(error)}), flush=True)
 

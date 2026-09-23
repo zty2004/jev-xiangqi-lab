@@ -1,0 +1,113 @@
+{
+  "model": "models/choice-openings-5000.pt",
+  "model_sha256": "6e21876c791421f48883ec49b25d1c7b69b5af040cd0647412b211a07e0b68ab",
+  "teacher_data": "data/teacher-openings-5000.jsonl",
+  "teacher_sha256": "07389263eed847d86a084380d7283cfd0b4a967684bbcd718536b7fd82517f09",
+  "teacher_meta": {
+    "kind": "meta",
+    "model": "Pikafish",
+    "positions": 5000,
+    "moveTime": 100,
+    "seed": 20260923,
+    "openingBook": "data/openings.json",
+    "openingPlies": 8,
+    "openingLines": 239,
+    "openingBookHash": "eeeb4f3a448efb21392a6d4c494d559bc7ca27481b50ee7513f410e85730ab20",
+    "generatedAt": "2026-09-23T06:37:41.684Z",
+    "teacherBinarySha256": "3a11f9034ef723bb4068e4cf88a79a12d99507474ba118fa916ec2cecd4f4abe"
+  },
+  "opening_sha256": "9a5f1ca8c7b461e2a00986ff9803dd8ec2f70693b5e84403e2013c67093aad5c",
+  "seed": 20260923,
+  "architecture": {
+    "channels": 64,
+    "blocks": 4
+  },
+  "training": {
+    "epochs_requested": 10,
+    "best_epoch": 2,
+    "batch": 128,
+    "learning_rate": 0.001,
+    "opening_samples_requested": 2000,
+    "split_sizes": {
+      "train": 5232,
+      "validation": 544,
+      "calibration": 522,
+      "test": 614
+    },
+    "validation_loss": 3.0976210762472713,
+    "validation_top1": 0.23897058823529413
+  },
+  "evaluation": {
+    "temperature": 1.3542555469368927,
+    "calibration": {
+      "count": 522,
+      "top1": 0.18199233716475097,
+      "nll": 3.041199002164551,
+      "brier": 0.8972228228817498,
+      "mean_top_probability": 0.17358674706313118,
+      "ece10": 0.01788697482382886
+    },
+    "test_uncalibrated": {
+      "count": 614,
+      "top1": 0.21009771986970685,
+      "nll": 2.9188788174880393,
+      "brier": 0.8872718281971127,
+      "mean_top_probability": 0.22674341943928006,
+      "ece10": 0.0290223804912272
+    },
+    "test_calibrated": {
+      "count": 614,
+      "top1": 0.21009771986970685,
+      "nll": 2.921407104181461,
+      "brier": 0.8875825226501067,
+      "mean_top_probability": 0.17054389527595393,
+      "ece10": 0.04697380975762485
+    }
+  },
+  "prior_source_excluded_test": {
+    "excluded_sources": [
+      "data/teacher-1000.jsonl",
+      "data/opening-positions.jsonl"
+    ],
+    "old_model": {
+      "temperature": 1.0,
+      "test": {
+        "count": 599,
+        "top1": 0.1652754590984975,
+        "nll": 3.0755565671611054,
+        "brier": 0.9064705670377448,
+        "mean_top_probability": 0.16564792450610705,
+        "ece10": 0.027434899171624637
+      }
+    },
+    "new_model": {
+      "temperature": 1.3542555469368927,
+      "test": {
+        "count": 599,
+        "top1": 0.21035058430717862,
+        "nll": 2.9192086000840853,
+        "brier": 0.8862828480978442,
+        "mean_top_probability": 0.16919764693521697,
+        "ece10": 0.04875873184711587
+      }
+    }
+  },
+  "interpretation": "Top1 and probability scores measure agreement with the 100 ms Pikafish teacher, not playing strength or win probability.",
+  "match_5s": {
+    "file": "benchmark-choice-5000-openings-5s.jsonl",
+    "games": 2,
+    "score": 0,
+    "results": [
+      {
+        "winner": "black",
+        "reason": "将死"
+      },
+      {
+        "winner": "red",
+        "reason": "将死"
+      }
+    ],
+    "move_time_ms": 5000,
+    "interpretation": "Two games verify the evaluation path; they cannot establish a reliable playing-strength difference."
+  }
+}

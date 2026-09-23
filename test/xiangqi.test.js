@@ -43,3 +43,13 @@ test('search selects a legal move and reports completed depth', () => {
   assert.ok(result.depth >= 1);
   assert.ok(legalMoves(position).some(move => moveName(move) === moveName(result.move)));
 });
+
+test('teaching analysis ranks distinct legal moves with full root scores', () => {
+  const position = parseFen();
+  const result = chooseMove(position, { timeMs: 300, maxDepth: 2, fullRootScores: true });
+  const allowed = new Set(legalMoves(position).map(moveName));
+  assert.ok(result.candidates.length >= 5);
+  assert.equal(new Set(result.candidates.map(item => item.move)).size, result.candidates.length);
+  assert.ok(result.candidates.every(item => allowed.has(item.move) && Number.isFinite(item.score)));
+  assert.ok(result.candidates.every((item, index) => !index || result.candidates[index - 1].score >= item.score));
+});

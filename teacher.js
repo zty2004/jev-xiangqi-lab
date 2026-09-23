@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import { createWriteStream } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { createWriteStream, readFileSync } from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { gameResult, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
@@ -75,6 +76,13 @@ class Teacher {
 
 const openings = openingBook ? loadOpeningLines(openingBook, openingPlies) :
   [[], ['b2e2', 'b7e7'], ['h2e2', 'h7e7'], ['b0c2', 'b9c7'], ['h0g2', 'h9g7']];
+if (openingBook) {
+  const openingRandom = randomGenerator(seed ^ 0x5eeda11);
+  for (let i = openings.length - 1; i > 0; i--) {
+    const j = Math.floor(openingRandom() * (i + 1));
+    [openings[i], openings[j]] = [openings[j], openings[i]];
+  }
+}
 function advance(position, notation) {
   const move = legalMoves(position).find(item => moveName(item) === notation);
   if (!move) throw new Error(`Illegal teacher move ${notation} in ${toFen(position)}`);
@@ -86,7 +94,9 @@ async function main() {
   try {
     await teacher.ready();
     writer.write(JSON.stringify({ kind: 'meta', model: 'Pikafish', positions, moveTime, seed,
+      teacherBinarySha256: createHash('sha256').update(readFileSync(binary)).digest('hex'),
       openingBook: openingBook || null, openingPlies: openingBook ? openingPlies : null, openingLines: openings.length,
+      openingBookHash: openingBook ? createHash('sha256').update(readFileSync(openingBook)).digest('hex') : null,
       generatedAt: new Date().toISOString() }) + '\n');
     let written = 0;
     for (let game = 0; written < positions; game++) {

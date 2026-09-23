@@ -11,7 +11,13 @@ npm test
 npm start
 ```
 
-打开 `http://127.0.0.1:3000`。网页支持人机对弈、选择红黑方、思考时间、悔棋和 FEN 导入。服务器只监听本机地址。
+打开 `http://127.0.0.1:3000`。网页支持人机对弈、选择红黑方、思考时间、悔棋和 FEN 导入；选择黑方时棋盘会翻转，黑方显示在下方。服务器只监听本机地址。
+
+网页的**教学模式**允许你用鼠标代走红黑双方，并随时选择红方或黑方在下。每步之后，自研引擎对当前局面分析，按设置标注前 1–5 招；数字和箭头对应推荐排名，旁边列出搜索评分。你可以选择任意合法走法，推荐不会自动落子。设置 `CHOICE_MODEL` 启动服务器后，推荐列表还会显示本地模型给各招的概率：
+
+```sh
+CHOICE_MODEL=/absolute/path/to/models/choice-openings-5000.pt npm start
+```
 
 ## 后端接口
 
@@ -39,11 +45,13 @@ node benchmark.js --pikafish /absolute/path/to/Pikafish --openings data/openings
 
 2026-09-23 的流程验证在相同引擎代码、相同 8 步开局和每步 5 秒下各跑了 2 局：纯搜索基线 0/2，本地选择模型引导搜索也是 0/2，均被 Pikafish 将死。双方对局走法有变化，但这些样本不足以证明模型提高棋力。记录见 `benchmark-baseline-openings-5s.jsonl` 与 `benchmark-choice-openings-5s.jsonl`。
 
+5,000 局面训练后的新模型也在相同开局、每步 5 秒、红黑轮换的 2 局中得 0/2，记录见 `benchmark-choice-5000-openings-5s.jsonl`。目前没有证据表明实战棋力已提高；更不能据此声称接近或超过 Pikafish。
+
 当前裁判实现支持将死、困毙、三次重复及 60 回合无吃子/走兵，但**尚未实现比赛规则中的长将、长捉判罚**。因此当前自动对局结果是研发基准，不能作为赛事规则下的正式等级分。
 
 ## 本地选择模型训练
 
-当前提供一条可复现的教师蒸馏原型。`teacher.js` 让外部 Pikafish 自对弈并保存局面、所有合法走法、最佳走法与最多 8 个候选评分。`train/choice_model.py` 训练一个卷积网络，对每个局面的全部合法走法输出概率。按整局拆分训练和验证，并排除验证集中出现过的训练局面。
+当前提供一条可复现的教师蒸馏原型。`teacher.js` 让外部 Pikafish 自对弈并保存局面、所有合法走法、最佳走法与最多 8 个候选评分。`train/choice_model.py` 训练一个卷积网络，对每个局面的全部合法走法输出概率。按整局拆分训练、选模型、校准和测试，剔除跨组重复局面；校准集只用于拟合温度，最终测试集只报告结果。模型输出的 `concentration` 是本项目定义的概率分布集中度，不是 TypeSafe Jev 的 confidence 公式，也不是最高招的概率。
 
 ```sh
 mkdir -p data models
@@ -52,7 +60,17 @@ python3 train/choice_model.py train --data data/teacher-1000.jsonl --opening-dat
 CHOICE_MODEL=/absolute/path/to/models/choice-openings-3000.pt node uci.js
 ```
 
-训练代码需要 PyTorch（依赖见 `requirements.txt`）。当前 1,000 个教师局面和 2,000 个开局局面的模型只是流程验证，远不足以达到强引擎水平。
+概率和数据隔离测试：`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_choice_model.py`。输出的 `top1` 是与限时 Pikafish 最佳招一致的比例，`nll`、多类别 `brier` 和 `ece10` 评估这个教师选招事件的概率质量；这些指标不等于棋力或胜率。
+
+训练代码需要 PyTorch（依赖见 `requirements.txt`）。进一步的本机实验使用 5,000 个教师局面和最多 2,000 个开局局面，模型文件为 `models/choice-openings-5000.pt`，数据与指标见 [实验报告](reports/choice-openings-5000.json)。在剔除旧教师数据及全部开局库中出现过的局面后，新旧模型在同一批 599 个局面上与教师最佳招的一致率分别为 21.0% 和 16.5%。这只是监督学习指标，尚不足以说明实战棋力提高。新模型经校准后的测试集对数损失和 ECE 略高于校准前，报告同时保留两组数值。
+
+复现本轮训练：
+
+```sh
+node teacher.js --pikafish /absolute/path/to/Pikafish --openings data/openings.json --opening-plies 8 --positions 5000 --movetime 100 --output data/teacher-openings-5000.jsonl
+node verify-data.js data/teacher-openings-5000.jsonl
+python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --opening-data data/opening-positions.jsonl --opening-samples 2000 --output models/choice-openings-5000.pt --epochs 10 --batch 128 --channels 64 --blocks 4 --device cpu
+```
 
 ## 开局库
 
@@ -64,6 +82,7 @@ CHOICE_MODEL=/absolute/path/to/models/choice-openings-3000.pt node uci.js
 node openings.js --input /absolute/path/to/CCPD/Dataset/開局 --output data/openings.json --maxplies 24
 node book-positions.js --openings data/openings.json --output data/opening-positions.jsonl
 node teacher.js --pikafish /absolute/path/to/Pikafish --openings data/openings.json --opening-plies 8 --positions 1000 --movetime 100 --output data/teacher-openings.jsonl
+node verify-data.js data/teacher-openings.jsonl
 ```
 
 ## 后续训练方向

@@ -11,7 +11,7 @@
 ## 已实现与待实现
 
 - **已实现**：局面编码、逐个合法走法评分、概率归一化、Pikafish 教师数据蒸馏、开局棋谱导入，以及模型概率指导根节点搜索顺序。最终走法由自研 Alpha-Beta 搜索分数决定。
-- **尚未实现**：大规模自我对弈强化学习、概率校准、历史局面编码、用模型价值引导全树搜索，以及赛事级长将长捉规则。
+- **尚未实现**：大规模自我对弈强化学习、历史局面编码、用模型价值引导全树搜索，以及赛事级长将长捉规则。
 
 当前价值头拟合教师引擎分数的 `tanh` 变换，**不是胜率**；当前走法概率也**不是“这一步正确的概率”**。一个局面可能有多步同样好棋，概率必须结合它所学习的标签定义解释。
 
@@ -26,11 +26,11 @@
 
 “Jev 式”若要包括可信概率，必须先指定概率对应的事件。走法分布可以解释为教师或搜索会选择哪步；胜率头可解释为给定对弈策略和时限下最终获胜的概率。这两个事件不同，不应混称。
 
-留出从未用于训练的整局与开局，分别报告走法的对数损失、最高概率招的命中率，以及胜率预测的 Brier 分数和可靠性曲线。可用温度缩放校准策略分布，但不能用测试集调温度。严格适当评分规则的理论见 [Gneiting 与 Raftery（2007）](https://doi.org/10.1198/016214506000001437)。
+教师蒸馏阶段将整局分为训练、选模型、调温度和最终测试四组，并剔除跨组重复局面。温度缩放只在校准集上拟合，测试集报告选招命中率、对数损失、多类别 Brier 分数与 10 桶 ECE。这里概率所对应的事件是“Pikafish 在此时间设置下会选择这步”，**不是胜率，也不是客观正确率**；教师本身的选择有时间和搜索噪声。未来的胜率头应另以对局结果计算 Brier 分数和可靠性曲线。严格适当评分规则的理论见 [Gneiting 与 Raftery（2007）](https://doi.org/10.1198/016214506000001437)。
 
 ## 与 TypeSafe Jev 的关系
 
-TypeSafe 的[介绍](https://typesafe.ai/blog/introducing-system-one-models-and-jev)和[文档](https://docs.typesafe.ai/introduction)公开了结构化决策、封闭选项、概率与“Reinforcement Learning for Calibrated Decisions（RLCD）”的目标；截至 2026 年 9 月 23 日，在其公开材料中未找到可复现的架构、损失函数或训练配方。因此本项目用公开的策略价值网络、教师蒸馏和自我对弈研究作为技术基础，独立训练自己的模型，不需要 Jev API Key。
+TypeSafe 的[介绍](https://typesafe.ai/blog/introducing-system-one-models-and-jev)、[Choice 文档](https://docs.typesafe.ai/primitives/choice)和[Confidence 文档](https://docs.typesafe.ai/confidence)公开了结构化决策、封闭选项、各选项概率以及从整组概率形状导出的 confidence；其[机器学习说明](https://docs.typesafe.ai/introduction/machine-learning-primer)称训练目标为“Reinforcement Learning for Calibrated Decisions（RLCD）”。TypeSafe 的 confidence 公式没有公开。本项目另外输出 `concentration = 1 − H(π)/log|A(s)|` 作为**自己定义的分布集中度**，不称为 TypeSafe confidence，也不将其误当成最高招概率。截至 2026 年 9 月 23 日，在其公开材料中未找到可复现的架构、损失函数或训练配方。因此本项目用公开的策略价值网络、教师蒸馏和自我对弈研究作为技术基础，独立训练自己的模型，不需要 Jev API Key。
 
 ## 验收
 

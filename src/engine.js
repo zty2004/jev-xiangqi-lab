@@ -29,6 +29,7 @@ export function chooseMove(position, options = {}) {
   const table = new Map(), history = new Map(), killers = Array.from({ length: 64 }, () => []);
   const rootMoves = legalMoves(position);
   const priors = options.priors || null;
+  const fullRootScores = Boolean(options.fullRootScores);
   if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [] };
   let nodes = 0, completed = { move: rootMoves[0], depth: 0, score: evaluate(position), pv: [moveName(rootMoves[0])], candidates: rootMoves.map(move => ({ move: moveName(move), score: -evaluate(makeMove(position, move)) })).sort((a, b) => b.score - a.score).slice(0, 8) };
   const repetition = options.history ? [...options.history] : [];
@@ -110,7 +111,7 @@ export function chooseMove(position, options = {}) {
       repetition.push(rootKey);
       try {
         for (const move of ordered(rootMoves, ttMove, 0)) {
-          const score = -negamax(makeMove(position, move), depth - 1, -INF, -alpha, 1);
+          const score = -negamax(makeMove(position, move), depth - 1, -INF, fullRootScores ? INF : -alpha, 1);
           scores.push({ move: moveName(move), score });
           if (score > best) { best = score; bestMove = move; }
           if (score > alpha) alpha = score;

@@ -12,9 +12,9 @@
       <div>
         <p class="eyebrow">XIANGQI ENGINE LAB</p>
         <h1>中国象棋<span>实验室</span></h1>
-        <p class="subtitle">自研搜索引擎 · 本地对弈基线</p>
+        <p class="subtitle">自研搜索 · 教学分析 · 本地决策模型</p>
       </div>
-      <span class="mode">离线基线模式</span>
+      <span class="mode">本地模式</span>
     </header>
     <section class="layout">
       <div class="board-wrap">
@@ -27,8 +27,9 @@
               <path d="M130 490V850 M220 490V850 M310 490V850 M400 490V850 M490 490V850 M580 490V850 M670 490V850"/>
               <path d="M310 40L490 220 M490 40L310 220 M310 670L490 850 M490 670L310 850"/>
             </g>
-            <text x="220" y="463" text-anchor="middle">楚 河</text><text x="580" y="463" text-anchor="middle">汉 界</text>
+            <text id="river-left" x="220" y="463" text-anchor="middle">楚 河</text><text id="river-right" x="580" y="463" text-anchor="middle">汉 界</text>
           </svg>
+          <svg id="recommendation-overlay" class="recommendation-overlay" viewBox="0 0 800 900" preserveAspectRatio="none" aria-hidden="true"></svg>
           <div id="pieces" class="pieces"></div>
         </div>
       </div>
@@ -39,11 +40,26 @@
           <p id="detail">你执红棋，先手。</p>
         </div>
         <div class="control-card">
-          <label for="side">你的棋子</label>
-          <select id="side"><option value="red">红棋 · 先手</option><option value="black">黑棋 · 后手</option></select>
-          <label for="time">电脑思考时间</label>
+          <label for="mode">对弈模式</label>
+          <select id="mode"><option value="play">人机对弈</option><option value="teach">教学模式 · 双方手动走棋</option></select>
+          <div id="side-control">
+            <label for="side">你的棋子</label>
+            <select id="side"><option value="red">红棋 · 先手</option><option value="black">黑棋 · 后手</option></select>
+          </div>
+          <label for="orientation">棋盘方向</label>
+          <select id="orientation"><option value="red">红方在下</option><option value="black">黑方在下</option></select>
+          <label for="time" id="time-label">电脑思考时间</label>
           <select id="time"><option value="500">快速 · 0.5 秒</option><option value="1000" selected>标准 · 1 秒</option><option value="3000">深入 · 3 秒</option><option value="5000">评测 · 5 秒</option></select>
+          <div id="recommendation-control" hidden>
+            <label for="recommendation-count">推荐招数</label>
+            <select id="recommendation-count"><option value="1">前 1 招</option><option value="2">前 2 招</option><option value="3" selected>前 3 招</option><option value="4">前 4 招</option><option value="5">前 5 招</option></select>
+          </div>
           <div class="button-row"><button id="new" class="primary">重新开始</button><button id="undo">悔棋</button></div>
+        </div>
+        <div id="recommendations-card" class="recommendations-card" hidden>
+          <div class="card-heading"><span class="section-label">引擎推荐</span><span id="analysis-depth"></span></div>
+          <p class="recommendation-hint">棋盘上的数字是推荐排名。你仍可选择任意合法走法。</p>
+          <ol id="recommendations"></ol>
         </div>
         <div class="moves-card">
           <div class="card-heading"><span class="section-label">对局记录</span><span id="move-count">0 步</span></div>
@@ -56,7 +72,7 @@
         </details>
       </aside>
     </section>
-    <footer>本地基线用于验证规则、搜索与评测。Jev 联网选招将在 API Key 就绪后接入。</footer>
+    <footer>可选自训 Jev 式走法模型；推荐由自研搜索给出。无需联网 API Key。</footer>
   </main>
   <script type="module" src="/app.js"></script>
 </body>
