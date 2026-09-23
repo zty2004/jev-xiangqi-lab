@@ -12,8 +12,14 @@ if (!input || !output) throw new Error('Usage: node summarize-benchmark.js --inp
 const raw = readFileSync(input);
 const rows = raw.toString('utf8').trim().split('\n').map(line => JSON.parse(line));
 const runs = rows.filter(row => row.kind === 'run');
-const games = rows.filter(row => row.kind === 'game');
-if (runs.length !== 1 || !games.length) throw new Error('Expected one run header and at least one completed game');
+const legacyFailures = rows.filter(row => row.kind === 'game' &&
+  /^(baseline|Pikafish) error:/.test(row.result?.reason || ''));
+const aborted = [...rows.filter(row => row.kind === 'aborted'),
+  ...legacyFailures.map(row => ({ game: row.game, reason: row.result.reason, plies: row.plies,
+    moves: row.moves, legacyForfeit: true }))];
+const games = rows.filter(row => row.kind === 'game' && !legacyFailures.includes(row));
+if (runs.length !== 1 || (!games.length && !aborted.length))
+  throw new Error('Expected one run header and at least one game or aborted game');
 const bookPath = new URL('./data/master-opening-book.json', import.meta.url);
 if (runs[0].settings.masterOpeningBookHash &&
     createHash('sha256').update(readFileSync(bookPath)).digest('hex') !== runs[0].settings.masterOpeningBookHash)
@@ -42,7 +48,8 @@ const summary = games.map(game => {
 });
 const report = { source: input, sourceSha256: createHash('sha256').update(raw).digest('hex'),
   settings: runs[0].settings, completedGames: games.length,
-  enginePoints: summary.reduce((sum, game) => sum + game.engineScore, 0), games: summary };
+  abortedGames: aborted, enginePoints: summary.reduce((sum, game) => sum + game.engineScore, 0), games: summary };
 writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify({ completedGames: games.length, enginePoints: report.enginePoints,
+  abortedGames: aborted.length,
   bookDecisions: summary.reduce((sum, game) => sum + game.bookDecisions.length, 0), output }));

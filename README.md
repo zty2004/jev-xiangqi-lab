@@ -43,6 +43,8 @@ npm run benchmark -- --pikafish /absolute/path/to/Pikafish-MacOS-universal --gam
 
 评测会在同一台机器上依次给双方每步 5 秒，使用固定开局并交换红黑方。结果写入 JSONL，包含每局走法、结果、引擎文件哈希、开局和用时设置。正式比较棋力时应增大偶数对局数，固定引擎版本、硬件、线程数与开局集，并报告胜率及不确定性。
 
+运行中若引擎或对手超时，评测脚本写入 `aborted` 记录并停止，**不会把运行故障算成对局负局**。`--start-game 1 --games 2` 可单独补跑第二局（从零编号），输出到新的文件。`node summarize-benchmark.js --input games.jsonl --output report.json` 重放棋谱、核对终局、生成中文记谱并将旧格式中的运行故障从成绩中剔除。
+
 使用导入的开局库固定评测起点：
 
 ```sh
@@ -111,6 +113,8 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --op
 另从同一大师库导出 [1,970 个训练局面](data/master-opening-positions.jsonl)：仅保留至少 5 局支持的局面，目标走法概率取自正式对弈时启用的开局候选及其大师对局频次，包含中炮对屏风马的分类约束。这个文件是监督学习输入；仅生成文件不会改变当前模型权重或证明棋力提高。
 
 GPU 0 上完成一组同配置对照：候选模型加入其中 1,500 个大师开局训练局面，对照模型只使用相同教师数据。排除训练数据、教师数据和旧开局数据后，247 个开局留出局面的常见招匹配率从对照的 26.72% 升至 32.39%，对大师走法分布的交叉熵从 2.768 降至 2.339；旧网页模型在同一留出集为 27.53% 和 2.710。另在训练集中查看中炮第一应手，候选模型首选从对照的“炮８平５”变为“马８进７”；该例本身不作为泛化证据。[训练报告](reports/choice-master-opening-gpu0.json)与[三模型对照](reports/compare-master-opening-gpu0.json)保留权重哈希、数据划分和指标。这证明候选模型学到了部分开局分布，但还没有实战胜率证据；网页继续使用旧模型，正式对弈的开局库仍负责约束前 24 个半回合。
+
+首次每步 5 秒实战验证的[原始记录](benchmark-choice-master-opening-5s-interrupted.jsonl)中，候选执红一局在 86 个半回合后被将死；执黑一局在第 17 个半回合后因引擎响应超时而中断。中文棋谱与有效成绩见[重放报告](reports/benchmark-choice-master-opening-interrupted.json)；第二局的运行故障不计为负局，尚不能据此比较模型棋力。
 
 重新导入或生成训练局面：
 

@@ -15,13 +15,16 @@ function option(name, fallback) {
 }
 const pikafishPath = option('--pikafish', process.env.PIKAFISH_PATH);
 const gameCount = Number(option('--games', 4));
+const startGame = Number(option('--start-game', 0));
 const moveTime = Number(option('--movetime', 5000));
 const maxPlies = Number(option('--maxplies', 240));
 const outputPath = path.resolve(option('--output', 'benchmark-results.jsonl'));
 const openingBook = option('--openings');
 const openingPlies = Number(option('--opening-plies', 8));
-if (!pikafishPath || !Number.isInteger(gameCount) || gameCount < 2 || gameCount % 2 || !Number.isInteger(moveTime) || moveTime < 10) {
-  console.error('Usage: node benchmark.js --pikafish /path/to/pikafish [--games EVEN_NUMBER] [--movetime 5000] [--output results.jsonl]');
+if (!pikafishPath || !Number.isInteger(gameCount) || gameCount < 2 || gameCount % 2 ||
+    !Number.isInteger(startGame) || startGame < 0 || startGame >= gameCount ||
+    !Number.isInteger(moveTime) || moveTime < 10) {
+  console.error('Usage: node benchmark.js --pikafish /path/to/pikafish [--games EVEN_NUMBER] [--start-game INDEX] [--movetime 5000] [--output results.jsonl]');
   process.exit(2);
 }
 
@@ -99,7 +102,7 @@ async function main() {
   const out = createWriteStream(outputPath, { flags: 'a' });
   try {
     await Promise.all([baseline.ready(), pikafish.ready()]);
-    const settings = { moveTime, gameCount, maxPlies, openings, nodeVersion: process.version,
+    const settings = { moveTime, gameCount, startGame, maxPlies, openings, nodeVersion: process.version,
       openingBookHash: openingBook ? await fileHash(openingBook) : null,
       masterOpeningBookHash: process.env.OPENING_BOOK === 'off' ? null :
         await fileHash(process.env.OPENING_BOOK || path.join(root, 'data/master-opening-book.json')),
@@ -114,7 +117,7 @@ async function main() {
       choiceAdapterHash: process.env.CHOICE_MODEL ? await fileHash(path.join(root, 'src/local-choice.js')) : null,
       pikafishHash: await fileHash(pikafishPath) };
     out.write(JSON.stringify({ kind: 'run', date: new Date().toISOString(), settings }) + '\n');
-    for (let game = 0; game < gameCount; game++) {
+    for (let game = startGame; game < gameCount; game++) {
       const opening = openings[Math.floor(game / 2) % openings.length];
       const baselineSide = game % 2 === 0 ? 'red' : 'black';
       let position = parseFen(), moves = [], history = [positionKey(position)], result = null;
@@ -128,7 +131,14 @@ async function main() {
         const engine = position.side === baselineSide ? baseline : pikafish;
         let notation;
         try { notation = await engine.move(toFen(position), moveTime, moves); }
-        catch (error) { result = { winner: position.side === 'red' ? 'black' : 'red', reason: `${engine.name} error: ${error.message}` }; break; }
+        catch (error) {
+          out.write(JSON.stringify({ kind: 'aborted', game: game + 1, baselineSide, opening,
+            reason: `${engine.name} error: ${error.message}`, plies: moves.length, moves,
+            fen: toFen(position) }) + '\n');
+          console.error(`Game ${game + 1}/${gameCount} aborted at ply ${moves.length}: ${engine.name} error: ${error.message}`);
+          process.exitCode = 1;
+          return;
+        }
         if (!legalMoves(position).some(move => moveName(move) === notation)) {
           result = { winner: position.side === 'red' ? 'black' : 'red', reason: `${engine.name} illegal move: ${notation}` }; break;
         }
