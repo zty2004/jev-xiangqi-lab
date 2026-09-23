@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--data", action="append", required=True)
     parser.add_argument("--history-data")
     parser.add_argument("--exclude-data", action="append", default=[])
+    parser.add_argument("--test-source-index", type=int, help="limit the held-out comparison to one --data source (zero based)")
     parser.add_argument("--seed", type=int, default=20260923)
     parser.add_argument("--bootstrap", type=int, default=2000)
     parser.add_argument("--batch", type=int, default=128)
@@ -30,7 +31,11 @@ def main():
     args = parser.parse_args()
     if args.bootstrap < 1:
         parser.error("--bootstrap must be positive")
+    if args.test_source_index is not None and not (0 <= args.test_source_index < len(args.data)):
+        parser.error("--test-source-index is outside the --data sources")
     _, _, _, test = choice.split_rows(choice.load_teacher_sources(args.data, args.history_data), args.seed)
+    if args.test_source_index is not None:
+        test = [row for row in test if (str(row["game"]).split(":", 1)[0] if len(args.data) > 1 else "0") == str(args.test_source_index)]
     excluded = {" ".join(row["fen"].split()[:2])
                 for filename in args.exclude_data for row in choice.load_rows(filename)}
     test = [row for row in test if " ".join(row["fen"].split()[:2]) not in excluded]
@@ -63,6 +68,7 @@ def main():
                         sum(item[1] for item in selected) / len(selected)))
     print(json.dumps({
         "positions": len(test), "games": len(games), "bootstrapSamples": args.bootstrap,
+        "testSourceIndex": args.test_source_index,
         "modelA": {"path": args.model_a, "sha256": choice.sha256_file(args.model_a), "metrics": metrics["a"]},
         "modelB": {"path": args.model_b, "sha256": choice.sha256_file(args.model_b), "metrics": metrics["b"]},
         "top1GainBminusA": metrics["b"]["top1"] - metrics["a"]["top1"],
