@@ -65,9 +65,9 @@ class UciEngine {
     this.send('isready');
     await this.wait(line => line === 'readyok', 10000);
   }
-  async move(fen, ms) {
+  async move(fen, ms, historyMoves = null) {
     this.lines = [];
-    this.send(`position fen ${fen}`);
+    this.send(historyMoves ? `position startpos${historyMoves.length ? ` moves ${historyMoves.join(' ')}` : ''}` : `position fen ${fen}`);
     this.send(`go movetime ${ms}`);
     const line = await this.wait(line => line.startsWith('bestmove '), ms + 20000);
     return line.split(/\s+/)[1];
@@ -104,6 +104,8 @@ async function main() {
       openingPlies: openingBook ? openingPlies : null,
       baselineName: baseline.idName, pikafishName: pikafish.idName,
       baselineHash: await fileHash(path.join(root, 'src/engine.js')),
+      uciHash: await fileHash(path.join(root, 'uci.js')),
+      benchmarkHarnessHash: await fileHash(path.join(root, 'benchmark.js')),
       rulesHash: await fileHash(path.join(root, 'src/xiangqi.js')),
       choiceModelHash: process.env.CHOICE_MODEL ? await fileHash(process.env.CHOICE_MODEL) : null,
       choiceCodeHash: process.env.CHOICE_MODEL ? await fileHash(path.join(root, 'train/choice_model.py')) : null,
@@ -123,7 +125,7 @@ async function main() {
         if (result) break;
         const engine = position.side === baselineSide ? baseline : pikafish;
         let notation;
-        try { notation = await engine.move(toFen(position), moveTime); }
+        try { notation = await engine.move(toFen(position), moveTime, moves); }
         catch (error) { result = { winner: position.side === 'red' ? 'black' : 'red', reason: `${engine.name} error: ${error.message}` }; break; }
         if (!legalMoves(position).some(move => moveName(move) === notation)) {
           result = { winner: position.side === 'red' ? 'black' : 'red', reason: `${engine.name} illegal move: ${notation}` }; break;

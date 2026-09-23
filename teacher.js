@@ -58,7 +58,7 @@ class Teacher {
     this.send('setoption name MultiPV value 8');
     const ready = this.until(line => line === 'readyok'); this.send('isready'); await ready;
   }
-  async analyse(fen, ms) {
+  async analyse(fen, ms, historyMoves = null) {
     const byDepth = new Map();
     const finished = this.until(line => line.startsWith('bestmove '), ms + 20000, line => {
       if (!line.startsWith('info ') || !line.includes(' multipv ') || !line.includes(' pv ')) return;
@@ -70,7 +70,8 @@ class Teacher {
       if (!byDepth.has(depth)) byDepth.set(depth, new Map());
       byDepth.get(depth).set(rank, { move: move[1], score: Number(score[2]), scoreType: score[1] });
     });
-    this.send(`position fen ${fen}`); this.send(`go movetime ${ms}`);
+    this.send(historyMoves ? `position startpos${historyMoves.length ? ` moves ${historyMoves.join(' ')}` : ''}` : `position fen ${fen}`);
+    this.send(`go movetime ${ms}`);
     const line = await finished, best = line.split(/\s+/)[1];
     const selectedDepth = [...byDepth.keys()].sort((a, b) => byDepth.get(b).size - byDepth.get(a).size || b - a)[0] || 0;
     const candidates = [...(byDepth.get(selectedDepth)?.entries() || [])].sort((a, b) => a[0] - b[0]).map(([rank, item]) => ({ rank, ...item }));
@@ -116,7 +117,7 @@ async function main() {
       for (const notation of opening) { position = advance(position, notation); history.push(positionKey(position)); ply++; }
       while ((gameLimit !== null || written < positions) && ply < maxPlies && !gameResult(position, history)) {
         const legal = legalMoves(position).map(moveName), fen = toFen(position);
-        const analysis = await teacher.analyse(fen, moveTime);
+        const analysis = await teacher.analyse(fen, moveTime, moves);
         if (!legal.includes(analysis.best)) throw new Error(`Pikafish returned illegal move ${analysis.best} in ${fen}`);
         const candidates = analysis.candidates.filter(item => legal.includes(item.move));
         const varied = random() < 0.2 && candidates.length >= 2;

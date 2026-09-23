@@ -71,9 +71,24 @@
       "trainingFrequencyWdlBaseline": { "count": 1226, "nll": 0.7650054023460385, "brier": 0.5072086109017797 }
     }
   ],
+  "externalMatch": {
+    "model": "models/choice-history-wdl-mixed-gpu0.pt",
+    "path": "benchmark-choice-history-mixed-openings-5s.jsonl",
+    "sha256": "2a0ec63baac8d8578c5c81e29d6702525b580afbc7309f67290b1e0771e6b1fa",
+    "opponent": "Pikafish 2026-09-06",
+    "moveTimeMsPerSide": 5000,
+    "openingPlies": 8,
+    "score": 0,
+    "games": [
+      { "modelSide": "red", "winner": "black", "reason": "将死", "plies": 56 },
+      { "modelSide": "black", "winner": "red", "reason": "将死", "plies": 41 }
+    ],
+    "historyProtocol": "both engines received position startpos moves with the complete played move list",
+    "interpretation": "Two losses are too few to estimate stable playing strength; they do not support promotion."
+  },
   "interpretation": [
     "Both history-aware candidates trail the prior model in teacher imitation on comparable held-out positions.",
     "The mixed model's WDL head has worse NLL and Brier score than a constant distribution based on training frequencies; it is not ready to guide search.",
-    "Teacher imitation and WDL metrics do not establish match strength. Candidate weights remain inactive until paired games are reviewed."
+    "Teacher imitation and WDL metrics do not establish match strength. The paired 5-second match also gave no reason to promote either candidate."
   ]
 }

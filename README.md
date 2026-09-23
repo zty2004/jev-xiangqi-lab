@@ -65,6 +65,8 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --da
 
 `dash-dev-191-root` 的 GPU 0 训练实验使用 [GPU 固定脚本](train/run_gpu_21k.sh)，权重为 `models/choice-21k-gpu0.pt`，完整配置、哈希与评测见[训练报告](reports/choice-21k-gpu0.json)。在排除旧教师文件和开局库局面后的 1,973 个新测试局面上，新模型与教师最佳招一致率 20.48%，旧模型 19.16%；新模型 NLL 2.8645，旧模型 2.9169。这只说明教师模仿指标改善。新模型在相同 8 步开局、每步 5 秒、红黑轮换的 [2 局评测](benchmark-choice-21k-openings-5s.jsonl)中得 0/2，均被 Pikafish 将死；样本太少，不能据此估计稳定棋力。当前网页继续使用旧模型。
 
+下一版实验让模型同时读取前两个盘面、半回合计数与当前局面的重复次数，并用有终局结果的对局训练胜/和/负头。两套 GPU 0 候选权重与训练配置见[历史模型报告](reports/history-wdl-gpu0.json)。混合数据版本在同一留出集的教师最佳招一致率为 20.42%，旧模型为 20.88%；胜负头的 NLL 为 0.781，差于训练类别频率基线的 0.765。在传入完整走棋历史后，该模型的[每步 5 秒成对评测](benchmark-choice-history-mixed-openings-5s.jsonl)对 Pikafish 得 0/2。两套新权重仍为实验候选，网页继续使用旧模型。
+
 ```sh
 mkdir -p data models
 node teacher.js --pikafish /absolute/path/to/Pikafish-MacOS-universal --positions 1000 --movetime 100 --output data/teacher-1000.jsonl
