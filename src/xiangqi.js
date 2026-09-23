@@ -3,8 +3,7 @@ export const START_FEN = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBA
 const files = 'abcdefghi';
 const inside = (x, y) => x >= 0 && x < 9 && y >= 0 && y < 10;
 const at = (x, y) => y * 9 + x;
-const red = piece => piece !== '.' && piece === piece.toUpperCase();
-const sideOf = piece => piece === '.' ? null : red(piece) ? 'red' : 'black';
+const sideOf = piece => piece === '.' ? null : piece.charCodeAt(0) <= 90 ? 'red' : 'black';
 const opponent = side => side === 'red' ? 'black' : 'red';
 const palace = (x, y, side) => x >= 3 && x <= 5 && (side === 'red' ? y >= 7 && y <= 9 : y >= 0 && y <= 2);
 
@@ -116,9 +115,58 @@ export function makeMove(position, move) {
 }
 
 export function isInCheck(position, side = position.side) {
-  const king = position.board.indexOf(side === 'red' ? 'K' : 'k');
+  const { board } = position;
+  const king = board.indexOf(side === 'red' ? 'K' : 'k');
   if (king < 0) return true;
-  return pseudoMoves(position, opponent(side), true).some(move => move.to === king);
+  const enemy = opponent(side), upper = enemy === 'red';
+  const piece = type => upper ? type.toUpperCase() : type;
+  const x = king % 9, y = Math.floor(king / 9);
+
+  // Look outward from the king. This avoids generating every enemy capture
+  // during each legality check and search node.
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    let screened = false, distance = 0;
+    for (let xx = x + dx, yy = y + dy; inside(xx, yy); xx += dx, yy += dy) {
+      distance++;
+      const attacker = board[at(xx, yy)];
+      if (attacker === '.') continue;
+      if (!screened) {
+        if (attacker === piece('r') || (attacker === piece('k') &&
+            (dx === 0 || (distance === 1 && palace(x, y, enemy))))) return true;
+        screened = true;
+      } else {
+        if (attacker === piece('c')) return true;
+        break;
+      }
+    }
+  }
+
+  const pawnY = y + (enemy === 'red' ? 1 : -1);
+  if (inside(x, pawnY) && board[at(x, pawnY)] === piece('p')) return true;
+  if (enemy === 'red' ? y <= 4 : y >= 5) {
+    if (inside(x - 1, y) && board[at(x - 1, y)] === piece('p')) return true;
+    if (inside(x + 1, y) && board[at(x + 1, y)] === piece('p')) return true;
+  }
+
+  for (const [dx, dy] of [[1, 2], [-1, 2], [1, -2], [-1, -2],
+                          [2, 1], [2, -1], [-2, 1], [-2, -1]]) {
+    const sx = x - dx, sy = y - dy;
+    if (!inside(sx, sy) || board[at(sx, sy)] !== piece('n')) continue;
+    const legX = sx + (Math.abs(dx) === 2 ? Math.sign(dx) : 0);
+    const legY = sy + (Math.abs(dy) === 2 ? Math.sign(dy) : 0);
+    if (board[at(legX, legY)] === '.') return true;
+  }
+
+  if (palace(x, y, enemy)) {
+    for (const dx of [-1, 1]) for (const dy of [-1, 1])
+      if (inside(x + dx, y + dy) && board[at(x + dx, y + dy)] === piece('a')) return true;
+  }
+  if (enemy === 'red' ? y >= 5 : y <= 4) {
+    for (const dx of [-2, 2]) for (const dy of [-2, 2])
+      if (inside(x + dx, y + dy) && board[at(x + dx, y + dy)] === piece('b') &&
+          board[at(x + dx / 2, y + dy / 2)] === '.') return true;
+  }
+  return false;
 }
 
 export function legalMoves(position) {

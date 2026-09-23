@@ -1,0 +1,64 @@
+{
+  "date": "2026-09-23",
+  "baselineCommit": "10da437",
+  "baselineRulesSha256": "858b1bab7dbb6f7b442f5531c0f5fdb27b1a6df4186f859c2b3ff750d15f1ad0",
+  "optimizedRulesSha256": "6123f138e3cde828cdc451fcdec432b0da5d223fdd61d70bfa1d46cffbc6b87d",
+  "searchCodeSha256Both": "7f97acace8921d7d4679ffc7cf553fc91c7029ded43a477a042b8cd7a8d60faf",
+  "nodeVersion": "v24.18.0",
+  "hardware": "Apple M5, macOS arm64",
+  "change": "Directly test attacks on the king instead of generating every opposing pseudo capture for each check test; use piece character codes for side checks.",
+  "correctness": {
+    "recordedGames": 160,
+    "recordedStates": 17827,
+    "sidesCompared": 35654,
+    "mismatchesAgainstCaptureGenerator": 0,
+    "nodeTestCasesPassed": 12,
+    "sameFixedDepthNodesScoresAndFirstMoves": true
+  },
+  "fixedDepthProtocol": "maxDepth=4, time limit=30000ms, four alternating runs per version and position in one Node process; median of four elapsed times",
+  "fixedDepth": [
+    {
+      "name": "start",
+      "fen": "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1",
+      "nodesBoth": 36987,
+      "scoreBoth": 0,
+      "firstMoveBoth": "b0c2",
+      "baselineMs": [734, 786, 678, 606],
+      "optimizedMs": [341, 320, 239, 230],
+      "baselineMedianMs": 706,
+      "optimizedMedianMs": 279.5,
+      "speedup": 2.525939177101968
+    },
+    {
+      "name": "middle",
+      "fen": "2bak2r1/4a4/1cN1br3/p3p1C2/5n2p/2p2R3/P1n1P1C1P/2N1B2c1/4A4/2BAK2R1 w - - 0 21",
+      "nodesBoth": 206875,
+      "scoreBoth": -30,
+      "firstMoveBoth": "g6a6",
+      "baselineMs": [3013, 2993, 2603, 2682],
+      "optimizedMs": [842, 882, 830, 840],
+      "baselineMedianMs": 2837.5,
+      "optimizedMedianMs": 841,
+      "speedup": 3.373959571938169
+    },
+    {
+      "name": "late",
+      "fen": "2bakr3/2C6/4b4/9/6n2/P5C1p/4R4/4B4/4A4/2BAK3c w - - 6 46",
+      "nodesBoth": 17512,
+      "scoreBoth": 243,
+      "firstMoveBoth": "g4c4",
+      "baselineMs": [205, 198, 201, 204],
+      "optimizedMs": [85, 83, 84, 80],
+      "baselineMedianMs": 202.5,
+      "optimizedMedianMs": 83.5,
+      "speedup": 2.4251497005988023
+    }
+  ],
+  "oneSecondProtocol": "Three alternating runs per version and position; complete iterative-deepening depth reported, not estimated depth",
+  "oneSecondCompletedDepths": [
+    { "name": "start", "baseline": [4, 4, 4], "optimized": [5, 5, 5] },
+    { "name": "middle", "baseline": [3, 3, 3], "optimized": [4, 4, 4] },
+    { "name": "late", "baseline": [5, 5, 5], "optimized": [5, 5, 5] }
+  ],
+  "limitation": "Faster node throughput and deeper completion on these positions do not by themselves prove higher match win rate."
+}

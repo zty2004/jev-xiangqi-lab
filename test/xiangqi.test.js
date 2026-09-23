@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { chooseMove } from '../src/engine.js';
-import { START_FEN, gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, playMove, positionKey, toFen } from '../src/xiangqi.js';
+import { START_FEN, gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, playMove, positionKey, pseudoMoves, squareIndex, toFen } from '../src/xiangqi.js';
 
 function perft(position, depth) {
   if (depth === 0) return 1;
@@ -35,6 +36,26 @@ test('facing generals count as check and illegal exposure is filtered', () => {
   assert.equal(isInCheck(position), false);
   assert.ok(!legalMoves(position).some(move => moveName(move) === 'e4d4'));
   assert.ok(!legalMoves(position).some(move => moveName(move) === 'e4f4'));
+});
+
+test('direct king attack detection agrees with capture generation across recorded games', () => {
+  const games = readFileSync(new URL('../data/ai-games-160.jsonl', import.meta.url), 'utf8')
+    .trim().split('\n').map(JSON.parse).filter(row => row.kind === 'game');
+  let states = 0;
+  for (const game of games) {
+    let position = parseFen(game.startFen);
+    for (const notation of [null, ...game.moves]) {
+      if (notation) position = makeMove(position, { from: squareIndex(notation.slice(0, 2)), to: squareIndex(notation.slice(2)) });
+      for (const side of ['red', 'black']) {
+        const king = position.board.indexOf(side === 'red' ? 'K' : 'k');
+        const enemy = side === 'red' ? 'black' : 'red';
+        const reference = king < 0 || pseudoMoves(position, enemy, true).some(move => move.to === king);
+        assert.equal(isInCheck(position, side), reference, `game ${game.game}, state ${states}, ${side}`);
+      }
+      states++;
+    }
+  }
+  assert.equal(states, 17827);
 });
 
 test('search selects a legal move and reports completed depth', () => {
