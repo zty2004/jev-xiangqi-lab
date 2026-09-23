@@ -1,0 +1,96 @@
+{
+  "status": "candidate-not-promoted",
+  "host": "dash-dev-191-root",
+  "physicalGpuIndex": 0,
+  "physicalGpuUuid": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "cudaVisibleDevices": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "otherGpuUsedByThisRun": false,
+  "remoteRepositoryCommit": "98c8d1a",
+  "command": "bash train/run_gpu_ccpd_1200.sh",
+  "trainingCodeSha256": "5fc7814d1bf2affb46b8e7d91d266dc275865b8c24ec618545a3620a3425d762",
+  "scriptSha256": "77e44dee4d7fbe6e2b82d9a43c715858c63b3892c52450a5243b90e7b0cd4bb1",
+  "model": "models/choice-ccpd1200-gpu0.pt",
+  "modelSha256": "7e173714638a6866b9bd14cb5d3dca90cf462ce986448ce8d8c2686a1856318f",
+  "dataSources": [
+    {
+      "file": "data/teacher-openings-5000.jsonl",
+      "sha256": "07389263eed847d86a084380d7283cfd0b4a967684bbcd718536b7fd82517f09"
+    },
+    {
+      "file": "data/teacher-games-160.jsonl",
+      "sha256": "f8752cf60f099002fd23f70a2f6085a7f9a7eefe0e80866ca2927f157d5651d5"
+    },
+    {
+      "file": "data/teacher-ccpd-competition-1200.jsonl",
+      "sha256": "f784197a4c6fc0b618d9a7bb4f907788d3d069da52cabfbfeeb69a30ed5d4220"
+    }
+  ],
+  "training": {
+    "seed": 20260923,
+    "channels": 64,
+    "residualBlocks": 4,
+    "inputChannels": 16,
+    "policyTarget": "dominant",
+    "valueHead": "scalar",
+    "valueLossWeight": 0.2,
+    "batchSize": 256,
+    "epochsMaximum": 12,
+    "bestEpoch": 3,
+    "stoppedAtEpoch": 6,
+    "earlyStopPatience": 3,
+    "validationLoss": 2.875524010656241,
+    "validationTop1": 0.2333474756045821,
+    "splitSizes": {
+      "train": 17260,
+      "validation": 2357,
+      "calibration": 2411,
+      "test": 2073
+    },
+    "temperature": 1.1143867425958927
+  },
+  "combinedHeldout": {
+    "temperature": 1.1143867425958927,
+    "calibration": {
+      "count": 2411,
+      "top1": 0.2210700953961012,
+      "nll": 2.8028869254508852,
+      "brier": 0.8802912265173581,
+      "mean_top_probability": 0.22107327764228832,
+      "ece10": 0.01702563857257193
+    },
+    "test_uncalibrated": {
+      "count": 2073,
+      "top1": 0.22383019778099372,
+      "nll": 2.78610738182977,
+      "brier": 0.8715913284532241,
+      "mean_top_probability": 0.2541113170326561,
+      "ece10": 0.03134540021167938
+    },
+    "test_calibrated": {
+      "count": 2073,
+      "top1": 0.22383019778099372,
+      "nll": 2.7816769042002467,
+      "brier": 0.8699824525374925,
+      "mean_top_probability": 0.2282468350707507,
+      "ece10": 0.013678837941354792
+    }
+  },
+  "newSourceComparison": "reports/compare-ccpd1200-gpu0.json",
+  "newSourceHeldout": {
+    "positions": 118,
+    "games": 15,
+    "priorTop1": 0.2966101694915254,
+    "candidateTop1": 0.288135593220339,
+    "priorNll": 2.649739779606948,
+    "candidateNll": 2.7370895464341594,
+    "top1Gain95GameBootstrap": [
+      -0.05825242718446602,
+      0.03968253968253968
+    ],
+    "nllReduction95GameBootstrap": [
+      -0.18022769780446646,
+      -0.0005475603148778347
+    ]
+  },
+  "interpretation": "The extra 1200 deeper labels did not improve held-out CCPD teacher prediction in this run. The 15-game test is small, and the new model has not earned promotion or a Pikafish match."
+}

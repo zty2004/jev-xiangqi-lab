@@ -77,6 +77,8 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --da
 
 教师标签审计发现，约 19% 的局面中最终最佳招与保存的候选评分首位不同。把软标签中最终最佳招的显式权重从 0.3 提高到 0.7 后，[新候选模型](reports/choice-best-dominant-gpu0.json)在同一留出集的最佳招一致率从 20.88% 升至 22.17%，NLL 从 2.854 降至 2.786。按 22 局重采样的 NLL 改善区间为 0.038–0.098；最佳招一致率改善区间仍跨过零。它在[每步 5 秒成对评测](benchmark-choice-best-dominant-openings-5s.jsonl)中对 Pikafish 得 0/2，因此新权重暂未替换网页模型。
 
+把 1,200 个重新分析的 CCPD 局面加入同一训练流程后，[GPU 0 新候选](reports/choice-ccpd1200-gpu0.json)在仅包含这批来源的 15 局、118 个留出局面上，[对比旧候选](reports/compare-ccpd1200-gpu0.json)的最佳招一致率由 29.66% 降至 28.81%，NLL 由 2.650 升至 2.737。局数有限，且尚未进行实战评测；这版权重保留作实验记录，不替换网页模型。
+
 ```sh
 mkdir -p data models
 node teacher.js --pikafish /absolute/path/to/Pikafish-MacOS-universal --positions 1000 --movetime 100 --output data/teacher-1000.jsonl
