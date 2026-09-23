@@ -154,10 +154,11 @@ class ResidualBlock(nn.Module):
 
 
 class ChoiceNet(nn.Module):
-    def __init__(self, channels=64, blocks=4, input_channels=16, value_head="scalar"):
+    def __init__(self, channels=64, blocks=4, input_channels=16, value_head="scalar", value_loss_weight=0.2):
         super().__init__()
         self.input_channels = input_channels
         self.value_head = value_head
+        self.value_loss_weight = value_loss_weight
         self.stem = nn.Sequential(nn.Conv2d(input_channels, channels, 3, padding=1), nn.BatchNorm2d(channels), nn.ReLU())
         self.blocks = nn.Sequential(*(ResidualBlock(channels) for _ in range(blocks)))
         self.policy = nn.Sequential(nn.Linear(channels * 3, channels * 2), nn.ReLU(), nn.Linear(channels * 2, 1))
@@ -296,7 +297,7 @@ def evaluate(model, loader, device):
             logits, predicted_value = model(boards, moves, mask)
             policy_loss = -(targets * torch.log_softmax(logits, dim=1)).sum(dim=1).mean()
             value_loss = value_loss_for(model, predicted_value, values, value_weights)
-            loss = policy_loss + 0.2 * value_loss
+            loss = policy_loss + model.value_loss_weight * value_loss
             loss_sum += loss.item() * boards.shape[0]
             hits += (logits.argmax(dim=1) == best).sum().item()
             total += boards.shape[0]
@@ -316,7 +317,7 @@ def collect_predictions(model, rows, device, batch_size):
 
 
 def wdl_metrics(model, rows, device, batch_size):
-    if model.value_head != "wdl":
+    if model.value_head != "wdl" or model.value_loss_weight == 0:
         return None
     loader = DataLoader(TeacherDataset(rows, model.input_channels, "wdl"), batch_size=batch_size, collate_fn=collate)
     count = hits = nll = brier = 0.0
@@ -386,7 +387,7 @@ def train(args):
         raise ValueError("WDL training requires game outcome labels")
     train_loader = DataLoader(TeacherDataset(training, input_channels, args.value_head, args.policy_target), batch_size=args.batch, shuffle=True, collate_fn=collate)
     validation_loader = DataLoader(TeacherDataset(validation, input_channels, args.value_head, args.policy_target), batch_size=args.batch, collate_fn=collate)
-    model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head).to(device)
+    model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head, args.value_loss_weight).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     print(f"device={device} train={len(training)} validation={len(validation)} calibration={len(calibration)} test={len(test)}", flush=True)
     best_loss = float("inf")
@@ -397,7 +398,7 @@ def train(args):
             boards, moves, targets, mask, values, value_weights = (item.to(device) for item in (boards, moves, targets, mask, values, value_weights))
             logits, predicted_value = model(boards, moves, mask)
             value_loss = value_loss_for(model, predicted_value, values, value_weights)
-            loss = -(targets * torch.log_softmax(logits, dim=1)).sum(dim=1).mean() + 0.2 * value_loss
+            loss = -(targets * torch.log_softmax(logits, dim=1)).sum(dim=1).mean() + model.value_loss_weight * value_loss
             optimizer.zero_grad()
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -408,7 +409,8 @@ def train(args):
             best_loss = validation_loss
             stale_epochs = 0
             torch.save({"state_dict": model.state_dict(), "channels": args.channels, "blocks": args.blocks,
-                        "input_channels": input_channels, "value_head": args.value_head, "policy_target": args.policy_target,
+                        "input_channels": input_channels, "value_head": args.value_head,
+                        "value_loss_weight": args.value_loss_weight, "policy_target": args.policy_target,
                         "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
                         "teacher_sources": [{"file": str(filename), "sha256": sha256_file(filename)} for filename in args.data],
@@ -427,7 +429,7 @@ def train(args):
     test_predictions = collect_predictions(model, test, device, args.batch)
     report = {"temperature": temperature, "calibration": policy_metrics(calibration_predictions, temperature),
               "test_uncalibrated": policy_metrics(test_predictions, 1.0), "test_calibrated": policy_metrics(test_predictions, temperature)}
-    if args.value_head == "wdl":
+    if args.value_head == "wdl" and args.value_loss_weight > 0:
         report["validation_wdl"] = wdl_metrics(model, validation, device, args.batch)
         report["test_wdl"] = wdl_metrics(model, test, device, args.batch)
     checkpoint = torch.load(args.output, map_location="cpu", weights_only=True)
@@ -440,7 +442,8 @@ def train(args):
 def load_model(filename, device):
     checkpoint = torch.load(filename, map_location=device, weights_only=True)
     model = ChoiceNet(checkpoint["channels"], checkpoint["blocks"],
-                      checkpoint.get("input_channels", 16), checkpoint.get("value_head", "scalar")).to(device)
+                      checkpoint.get("input_channels", 16), checkpoint.get("value_head", "scalar"),
+                      checkpoint.get("value_loss_weight", 0.2)).to(device)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
     return model, float(checkpoint.get("temperature", 1.0))
@@ -464,11 +467,11 @@ def rank(model, fen, moves, device, temperature=1.0, history=None):
         1 - sum(-p * math.log(max(p, 1e-30)) for p in probabilities) / math.log(len(moves))))
     result = {"concentration": concentration,
               "choices": sorted(({"move": move, "probability": probability} for move, probability in zip(moves, probabilities)), key=lambda item: item["probability"], reverse=True)}
-    if model.value_head == "wdl":
+    if model.value_head == "wdl" and model.value_loss_weight > 0:
         loss, draw, win = torch.softmax(value[0], dim=0).cpu().tolist()
         result["value"] = win - loss
         result["wdl"] = {"loss": loss, "draw": draw, "win": win}
-    else:
+    elif model.value_loss_weight > 0:
         result["value"] = value.item()
     return result
 
@@ -482,6 +485,7 @@ def main():
     train_parser.add_argument("--history-data", help="validated game-history and outcome labels for the final teacher file")
     train_parser.add_argument("--opening-samples", type=int, default=2000)
     train_parser.add_argument("--value-head", choices=["scalar", "wdl"], default="scalar")
+    train_parser.add_argument("--value-loss-weight", type=float, default=0.2)
     train_parser.add_argument("--policy-target", choices=["soft", "best"], default="soft")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
     train_parser.add_argument("--output", default="choice-model.pt")
@@ -511,6 +515,8 @@ def main():
     evaluate_parser.add_argument("--history-data", help="history labels for the final teacher file")
     args = parser.parse_args()
     if args.command == "train":
+        if not 0 <= args.value_loss_weight <= 1:
+            raise ValueError("value loss weight must be between 0 and 1")
         train(args)
     else:
         device = select_device(args.device)

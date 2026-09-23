@@ -1,0 +1,32 @@
+{
+  "status": "candidate-not-promoted",
+  "host": "dash-dev-191-root",
+  "physicalGpuIndex": 0,
+  "physicalGpuUuid": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "cudaVisibleDevices": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "command": "bash train/run_gpu_history_policy_only.sh",
+  "trainingCodeSha256": "ce39f46b74a9e55349d3bb06a40ebf0a02913045022ca363080b8e89d42065f1",
+  "scriptSha256": "8bb91d2168208f2c0c1fcc28c85869029693ed89bc53a732e5fe2904f8f107b4",
+  "model": "models/choice-history-policy-only-gpu0.pt",
+  "modelSha256": "d68f887bd64fcce60603a27c066487e7a3b4482e215751f844e9c290c6496eec",
+  "historyLabelsSha256": "b4fe3d092b16be601a8157ebd380ee375e2eabafc8dd25070de95c1a24567f23",
+  "ablation": "same mixed-source teacher data and 46-channel architecture as the WDL candidate, with WDL loss weight set to zero",
+  "valueHeadOutput": "suppressed because the head was not trained",
+  "seed": 20260923,
+  "bestEpoch": 2,
+  "stoppedAtEpoch": 5,
+  "splitSizes": { "train": 16221, "validation": 2304, "calibration": 2202, "test": 2174 },
+  "temperature": 1.0218971486541166,
+  "testPolicy": { "count": 2174, "top1": 0.1968721251149954, "nll": 2.8975214623168166, "brier": 0.8918625731312472, "ece10": 0.012843837267560705 },
+  "sameSplitComparisons": {
+    "mixedHistoryWdl": { "top1": 0.20423183072677092, "nll": 2.882431829950671 },
+    "priorModel": { "top1": 0.20883164673413063, "nll": 2.853583900004091 }
+  },
+  "testAfterOpeningLibraryExclusion": {
+    "count": 2133,
+    "policyOnlyTop1": 0.19690576652601968,
+    "mixedHistoryWdlTop1": 0.2039381153305204,
+    "priorModelTop1": 0.20815752461322082
+  },
+  "interpretation": "The policy-only ablation is worse than the mixed history-plus-WDL candidate. This rules out a simple explanation that WDL loss alone caused the policy decline; it does not prove the WDL head is useful. Both history candidates still trail the prior model."
+}
