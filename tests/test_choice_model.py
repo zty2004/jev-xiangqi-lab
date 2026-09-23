@@ -2,6 +2,8 @@
 
 import importlib.util
 import math
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -14,6 +16,21 @@ spec.loader.exec_module(choice_model)
 
 
 class ChoiceModelTests(unittest.TestCase):
+    def test_multiple_teacher_files_keep_game_ids_separate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            files = []
+            for source in range(2):
+                filename = Path(directory) / f"source-{source}.jsonl"
+                with filename.open("w", encoding="utf-8") as handle:
+                    for game in range(4):
+                        handle.write(json.dumps({"kind": "position", "game": game,
+                                                 "fen": f"source-{source}-game-{game} w",
+                                                 "legal": ["a0a1"], "best": "a0a1"}) + "\n")
+                files.append(filename)
+            rows = choice_model.load_teacher_sources(files)
+            self.assertEqual(len({row["game"] for row in rows}), 8)
+            self.assertEqual(len(rows), 8)
+
     def test_splits_keep_games_and_positions_disjoint(self):
         rows = [{"game": game, "fen": f"unique-{game} w", "legal": ["a0a1"], "best": "a0a1"}
                 for game in range(20)]

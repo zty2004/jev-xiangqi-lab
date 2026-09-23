@@ -154,6 +154,17 @@ def load_rows(filename):
     return rows
 
 
+def load_teacher_sources(filenames):
+    """Combine teacher files without merging equal game numbers across sources."""
+    if len(filenames) == 1:
+        return load_rows(filenames[0])
+    rows = []
+    for source_index, filename in enumerate(filenames):
+        for row in load_rows(filename):
+            rows.append({**row, "game": f"{source_index}:{row['game']}"})
+    return rows
+
+
 def split_rows(rows, seed):
     games = sorted({row["game"] for row in rows})
     if len(games) < 4:
@@ -252,7 +263,7 @@ def fit_temperature(predictions):
 
 def train(args):
     torch.manual_seed(args.seed)
-    rows = load_rows(args.data)
+    rows = load_teacher_sources(args.data)
     training, validation, calibration, test = split_rows(rows, args.seed)
     if args.opening_data:
         opening_rows = [row for row in load_rows(args.opening_data) if row.get("source") == "opening-book" and row.get("policy")]
@@ -287,7 +298,8 @@ def train(args):
             best_loss = validation_loss
             torch.save({"state_dict": model.state_dict(), "channels": args.channels, "blocks": args.blocks,
                         "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
-                        "seed": args.seed, "teacher_sha256": sha256_file(args.data),
+                        "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
+                        "teacher_sources": [{"file": str(filename), "sha256": sha256_file(filename)} for filename in args.data],
                         "opening_sha256": sha256_file(args.opening_data) if args.opening_data else None,
                         "split_sizes": {"train": len(training), "validation": len(validation),
                                         "calibration": len(calibration), "test": len(test)}}, args.output)
@@ -332,7 +344,7 @@ def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
     train_parser = sub.add_parser("train")
-    train_parser.add_argument("--data", required=True)
+    train_parser.add_argument("--data", action="append", required=True, help="teacher JSONL; repeat to combine files")
     train_parser.add_argument("--opening-data")
     train_parser.add_argument("--opening-samples", type=int, default=2000)
     train_parser.add_argument("--output", default="choice-model.pt")
@@ -353,7 +365,7 @@ def main():
     serve_parser.add_argument("--device", default="auto")
     evaluate_parser = sub.add_parser("evaluate")
     evaluate_parser.add_argument("--model", required=True)
-    evaluate_parser.add_argument("--data", required=True)
+    evaluate_parser.add_argument("--data", action="append", required=True, help="teacher JSONL; repeat to combine files")
     evaluate_parser.add_argument("--seed", type=int, default=20260923)
     evaluate_parser.add_argument("--batch", type=int, default=128)
     evaluate_parser.add_argument("--device", default="auto")
@@ -366,7 +378,7 @@ def main():
         device = select_device(args.device)
         model, temperature = load_model(args.model, device)
         if args.command == "evaluate":
-            _, _, _, test = split_rows(load_rows(args.data), args.seed)
+            _, _, _, test = split_rows(load_teacher_sources(args.data), args.seed)
             if args.exclude_data:
                 excluded = {" ".join(row["fen"].split()[:2]) for filename in args.exclude_data
                             for row in load_rows(filename)}

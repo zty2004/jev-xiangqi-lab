@@ -55,6 +55,12 @@ node benchmark.js --pikafish /absolute/path/to/Pikafish --openings data/openings
 
 选招并非只看下一手：搜索引擎使用逐层加深的多步搜索，并在叶节点继续检查吃子和将军变化。教学模式用 MultiPV 搜索前 1–5 招，展示每招的后续推演与实际完成深度；默认思考时间为 5 秒，可选 10 或 20 秒。模型目前只给根局面的合法走法提供先验，搜索树内部还没有逐节点模型评估，这是后续网络引导搜索的重点。界面的“深度”是搜索层数（半回合数），不是完整回合数。
 
+AI 棋谱来源、纳入规则与 160 局新生成的完整自对弈棋谱见 [数据来源](DATA_SOURCES.md) 和 [数据报告](reports/data-v2.json)。新旧教师文件可以一起训练：
+
+```sh
+python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --data data/teacher-games-160.jsonl --opening-data data/opening-positions.jsonl --opening-samples 2000 --output models/choice-v2.pt --epochs 10 --batch 128 --channels 64 --blocks 4 --device cpu
+```
+
 ```sh
 mkdir -p data models
 node teacher.js --pikafish /absolute/path/to/Pikafish-MacOS-universal --positions 1000 --movetime 100 --output data/teacher-1000.jsonl
