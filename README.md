@@ -31,6 +31,8 @@ CHOICE_MODEL=/absolute/path/to/models/choice-openings-5000.pt npm start
 
 随后缓存了攻击检查所需的棋子符号；相同固定深度下，三个局面又快了约 1.24–1.31 倍，原始测量见[第二次搜索优化报告](reports/search-check-piece-cache.json)。
 
+第一项加速配合当前正式模型的[每步 5 秒成对评测](benchmark-choice-5000-fastcheck-openings-5s.jsonl)仍对 Pikafish 得 0/2；这项评测使用的规则代码哈希已写入对局记录，与第二项微优化区分。
+
 ## 与 Pikafish 评测
 
 下载 [Pikafish 官方发布包](https://github.com/official-pikafish/Pikafish/releases)，将可执行文件与 `pikafish.nnue` 放在同一目录。运行：

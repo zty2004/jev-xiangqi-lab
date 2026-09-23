@@ -60,5 +60,19 @@
     { "name": "middle", "baseline": [3, 3, 3], "optimized": [4, 4, 4] },
     { "name": "late", "baseline": [5, 5, 5], "optimized": [5, 5, 5] }
   ],
-  "limitation": "Faster node throughput and deeper completion on these positions do not by themselves prove higher match win rate."
+  "externalMatch": {
+    "model": "models/choice-openings-5000.pt",
+    "path": "benchmark-choice-5000-fastcheck-openings-5s.jsonl",
+    "sha256": "864b6e5afdd02d108d48336655f92f3343dfbcf6226652852ae3a3db4b32b7b9",
+    "rulesSha256": "6123f138e3cde828cdc451fcdec432b0da5d223fdd61d70bfa1d46cffbc6b87d",
+    "opponent": "Pikafish 2026-09-06",
+    "moveTimeMsPerSide": 5000,
+    "openingPlies": 8,
+    "score": 0,
+    "games": [
+      { "modelSide": "red", "winner": "black", "reason": "将死", "plies": 62 },
+      { "modelSide": "black", "winner": "red", "reason": "将死", "plies": 49 }
+    ]
+  },
+  "limitation": "Faster node throughput and deeper completion on these positions do not by themselves prove higher match win rate; the two paired games against Pikafish were both lost."
 }
