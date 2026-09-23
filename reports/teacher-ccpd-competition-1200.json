@@ -1,0 +1,57 @@
+{
+  "status": "validated-teacher-data",
+  "purpose": "Deeper Pikafish analysis of independent CCPD computer-competition positions; external teacher only",
+  "data": "data/teacher-ccpd-competition-1200.jsonl",
+  "dataSha256": "f784197a4c6fc0b618d9a7bb4f907788d3d069da52cabfbfeeb69a30ed5d4220",
+  "positions": 1200,
+  "sourceGames": 155,
+  "selectedGames": 154,
+  "source": {
+    "gameData": "ccpd-computer-games.jsonl",
+    "gameDataSha256": "766dbfdeb9ffe0ae96b691db9bae8f6a06e4d60feda2aecfc229df3306007db7",
+    "license": "CC BY 4.0",
+    "sourceCommit": "368a47a947773dd8692c026e286dd19b6277b993",
+    "category": "電腦對局競賽"
+  },
+  "teacher": {
+    "binarySha256": "3a11f9034ef723bb4068e4cf88a79a12d99507474ba118fa916ec2cecd4f4abe",
+    "moveTimeMs": 500,
+    "multiPv": 8,
+    "meanDepth": 20.8975,
+    "medianDepth": 13.0,
+    "minDepth": 8,
+    "maxDepth": 245
+  },
+  "selection": {
+    "seed": 20260923,
+    "selectionSha256": "2742ebb1727b772bff1002312c40471752b47262fa8e21a9ce3fabc686f0e244",
+    "phaseQuotas": [
+      300,
+      480,
+      420
+    ],
+    "eligibleByPhase": [
+      3182,
+      6317,
+      4890
+    ],
+    "existingExcluded": 20901,
+    "skipped": {
+      "existing": 91,
+      "duplicate": 811,
+      "terminalTail": 92
+    },
+    "samplerCodeSha256": "bbdedaca977516e2ed344102a22bc170c82525583b4113cd75d02718721128d2"
+  },
+  "quality": {
+    "allLegalAndSourceMatched": true,
+    "uniquePositions": 1200,
+    "overlapWithExistingTeacher": 0,
+    "meanCandidates": 7.485,
+    "fullEightCandidates": 1087,
+    "bestOutsideCandidates": 5,
+    "duplicateCandidateRows": 0
+  },
+  "verification": "node verify-data.js data/teacher-ccpd-competition-1200.jsonl && node verify-ccpd-teacher.js data/teacher-ccpd-competition-1200.jsonl data/ccpd-computer-games.jsonl data/teacher-openings-5000.jsonl data/teacher-games-160.jsonl",
+  "limitations": "Teacher labels come from a 500 ms external engine analysis and do not constitute game outcomes or evidence of playing-strength improvement."
+}

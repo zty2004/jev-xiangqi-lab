@@ -28,11 +28,19 @@ node verify-games.js data/ai-games-160.jsonl data/teacher-games-160.jsonl
 
 校验与合并统计见 [数据报告](reports/data-v2.json)。新旧两个教师文件合计 21,387 条分析记录，跨源去重后有 20,901 个不同局面。训练器现在可重复传入 `--data`，并把不同来源的同号对局隔离；当前固定种子划分为训练 14,221、验证 2,304、校准 2,202、测试 2,174 条，跨分组相同局面为 0。开局家族级隔离尚未实现，因此这些数字只证明逐局与逐局面的隔离。
 
-CCPD 电脑对局的[导入报告](reports/ccpd-computer-import.json)记录原仓库提交、208 份源文件的整体哈希、每份失败或重复的原因；每局也保留分类、来源文件及其 SHA-256。导入文件只提供**走法和原 PGN 结果**，还没有深度教师分析标签。它有 18,059 个不同局面，其中 17,999 个未出现在已有两份教师文件中，且中残局占多数；`*` 结果不能充当和棋或胜负标签。复现导入（按报告中的源提交检出 CCPD）：
+CCPD 电脑对局的[导入报告](reports/ccpd-computer-import.json)记录原仓库提交、208 份源文件的整体哈希、每份失败或重复的原因；每局也保留分类、来源文件及其 SHA-256。原始导入文件只提供**走法和原 PGN 结果**。它有 18,059 个不同局面，其中 17,999 个未出现在已有两份教师文件中，且中残局占多数；`*` 结果不能充当和棋或胜负标签。复现导入（按报告中的源提交检出 CCPD）：
 
 ```sh
 node ccpd-games.js --input /absolute/path/to/CCPD/Dataset/對局/電腦對局 --source-commit 368a47a947773dd8692c026e286dd19b6277b993 --compare-teacher data/teacher-openings-5000.jsonl --compare-teacher data/teacher-games-160.jsonl
 node verify-ccpd-games.js data/ccpd-computer-games.jsonl
+```
+
+已从 154 局「電腦對局競賽」中均衡抽取 1,200 个新局面，按开局、中局、残局比例 25/40/35 分布，使用外部 Pikafish 每局面 500 ms、多候选重新分析。`data/teacher-ccpd-competition-1200.jsonl` 保留原棋谱、局号、步数与实际走法；它不是原棋谱的胜负标签。所有局面与原棋谱逐步对应，且与旧教师集没有重复。标注代码能在中断后通过 `--resume` 续跑；采样、深度和哈希见[教师数据报告](reports/teacher-ccpd-competition-1200.json)。复现：
+
+```sh
+node label-ccpd-games.js --pikafish /absolute/path/to/Pikafish --positions 1200 --movetime 500 --exclude-teacher data/teacher-openings-5000.jsonl --exclude-teacher data/teacher-games-160.jsonl --output data/teacher-ccpd-competition-1200.jsonl
+node verify-data.js data/teacher-ccpd-competition-1200.jsonl
+node verify-ccpd-teacher.js data/teacher-ccpd-competition-1200.jsonl data/ccpd-computer-games.jsonl data/teacher-openings-5000.jsonl data/teacher-games-160.jsonl
 ```
 
 长将判罚修复后，逐局重放将先前误标为重复和棋的 19 局改判为长将方负；没有棋局在新的终局点之后继续走子。原始教师分析只接收 FEN，不知道之前的重复历史，因此靠近循环终点的 `best` 标签不应被解释为遵守长将规则的最佳招。训练带历史输入的模型前，应排除这类局面或根据完整棋谱重标。
