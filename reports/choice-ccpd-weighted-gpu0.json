@@ -1,0 +1,97 @@
+{
+  "status": "candidate-not-promoted",
+  "host": "dash-dev-191-root",
+  "physicalGpuIndex": 0,
+  "physicalGpuUuid": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "cudaVisibleDevices": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "otherGpuUsedByThisRun": false,
+  "command": "bash train/run_gpu_ccpd_weighted.sh",
+  "trainingCodeSha256": "bbacfb8a46bf7ecc5a8b73e87c8e9e92bdab7cdb26fc2f8a6adff24e8e5022c4",
+  "scriptSha256": "b8041df865ace855348e6eb9ddee9d0b59958ef07cc6aa712f79b8bc9bd05aa4",
+  "model": "models/choice-ccpd1200-weighted-gpu0.pt",
+  "modelSha256": "3211cfe672f91f45ac46e97175f71010d414395fe3fa5ad09a50a03eb6857a75",
+  "training": {
+    "seed": 20260923,
+    "sourceWeights": {
+      "2": 4.0
+    },
+    "policyTarget": "dominant",
+    "channels": 64,
+    "blocks": 4,
+    "inputChannels": 16,
+    "valueHead": "scalar",
+    "valueLossWeight": 0.2,
+    "batchSize": 256,
+    "bestEpoch": 1,
+    "stoppedAtEpoch": 4,
+    "earlyStopPatience": 3,
+    "validationLoss": 2.9992384084160166,
+    "validationTop1": 0.206194314806958,
+    "splitSizes": {
+      "train": 17260,
+      "validation": 2357,
+      "calibration": 2411,
+      "test": 2073
+    },
+    "temperature": 1.0442737824274138
+  },
+  "dataSources": [
+    {
+      "file": "data/teacher-openings-5000.jsonl",
+      "sha256": "07389263eed847d86a084380d7283cfd0b4a967684bbcd718536b7fd82517f09"
+    },
+    {
+      "file": "data/teacher-games-160.jsonl",
+      "sha256": "f8752cf60f099002fd23f70a2f6085a7f9a7eefe0e80866ca2927f157d5651d5"
+    },
+    {
+      "file": "data/teacher-ccpd-competition-1200.jsonl",
+      "sha256": "f784197a4c6fc0b618d9a7bb4f907788d3d069da52cabfbfeeb69a30ed5d4220"
+    }
+  ],
+  "combinedHeldout": {
+    "temperature": 1.0442737824274138,
+    "calibration": {
+      "count": 2411,
+      "top1": 0.19079220240564082,
+      "nll": 2.9394147114328733,
+      "brier": 0.8937436021842783,
+      "mean_top_probability": 0.18697957870210913,
+      "ece10": 0.012925494001805165
+    },
+    "test_uncalibrated": {
+      "count": 2073,
+      "top1": 0.20067534973468404,
+      "nll": 2.9179126944733045,
+      "brier": 0.883956280182481,
+      "mean_top_probability": 0.2075240389860401,
+      "ece10": 0.016410203723374393
+    },
+    "test_calibrated": {
+      "count": 2073,
+      "top1": 0.20067534973468404,
+      "nll": 2.9178089423390756,
+      "brier": 0.8840609574110911,
+      "mean_top_probability": 0.19911963700550914,
+      "ece10": 0.013487169584659234
+    }
+  },
+  "comparison": "reports/compare-ccpd-weighted-gpu0.json",
+  "newSourceHeldout": {
+    "positions": 118,
+    "games": 15,
+    "unweightedTop1": 0.288135593220339,
+    "weightedTop1": 0.23728813559322035,
+    "unweightedNll": 2.7370895464341594,
+    "weightedNll": 2.7999186715321183,
+    "top1Gain95GameBootstrap": [
+      -0.13043478260869565,
+      0.02586206896551724
+    ],
+    "nllReduction95GameBootstrap": [
+      -0.21938620808028433,
+      0.0886477403693409
+    ]
+  },
+  "interpretation": "Giving the deeper CCPD source 4x sampling weight did not improve its held-out teacher move prediction. The 15-game comparison is small. This checkpoint remains inactive."
+}

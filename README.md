@@ -79,6 +79,8 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --da
 
 把 1,200 个重新分析的 CCPD 局面加入同一训练流程后，[GPU 0 新候选](reports/choice-ccpd1200-gpu0.json)在仅包含这批来源的 15 局、118 个留出局面上，[对比旧候选](reports/compare-ccpd1200-gpu0.json)的最佳招一致率由 29.66% 降至 28.81%，NLL 由 2.650 升至 2.737。局数有限，且尚未进行实战评测；这版权重保留作实验记录，不替换网页模型。
 
+继续把新来源在训练采样中的权重提高 4 倍，也未改善同一 15 局测试：[加权模型报告](reports/choice-ccpd-weighted-gpu0.json)与[成对对比](reports/compare-ccpd-weighted-gpu0.json)显示，一致率从未加权版本的 28.81% 降至 23.73%，NLL 从 2.737 升至 2.800。加权权重不启用；当前优先改善开局选招与更可靠的数据划分。
+
 ```sh
 mkdir -p data models
 node teacher.js --pikafish /absolute/path/to/Pikafish-MacOS-universal --positions 1000 --movetime 100 --output data/teacher-1000.jsonl

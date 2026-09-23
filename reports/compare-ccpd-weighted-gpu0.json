@@ -1,0 +1,40 @@
+{
+  "positions": 118,
+  "games": 15,
+  "bootstrapSamples": 2000,
+  "testSourceIndex": 2,
+  "modelA": {
+    "path": "models/choice-ccpd1200-gpu0.pt",
+    "sha256": "7e173714638a6866b9bd14cb5d3dca90cf462ce986448ce8d8c2686a1856318f",
+    "metrics": {
+      "count": 118,
+      "top1": 0.288135593220339,
+      "nll": 2.7370895464341594,
+      "brier": 0.8340498153435982,
+      "mean_top_probability": 0.25839430308443007,
+      "ece10": 0.07056084919278904
+    }
+  },
+  "modelB": {
+    "path": "models/choice-ccpd1200-weighted-gpu0.pt",
+    "sha256": "3211cfe672f91f45ac46e97175f71010d414395fe3fa5ad09a50a03eb6857a75",
+    "metrics": {
+      "count": 118,
+      "top1": 0.23728813559322035,
+      "nll": 2.7999186715321183,
+      "brier": 0.8528742557865078,
+      "mean_top_probability": 0.21370019116517852,
+      "ece10": 0.095692817595298
+    }
+  },
+  "top1GainBminusA": -0.05084745762711865,
+  "top1Gain95GameBootstrap": [
+    -0.13043478260869565,
+    0.02586206896551724
+  ],
+  "nllReductionAminusB": -0.0628291250979589,
+  "nllReduction95GameBootstrap": [
+    -0.21938620808028433,
+    0.0886477403693409
+  ]
+}
