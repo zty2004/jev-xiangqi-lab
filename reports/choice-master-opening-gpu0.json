@@ -74,7 +74,8 @@
         "topProbability": 0.1513105034828186,
         "screenHorseProbability": 0.1513105034828186
       }
-    }
+    },
+    "usedInOpeningTraining": true
   },
-  "limitations": "Opening holdout measures imitation of master-game frequencies, not move optimality or playing strength. Candidate remains inactive pending paired match evaluation."
+  "limitations": "The central-cannon example was in the opening training set and is not a generalization test. The separate 247-position holdout measures imitation of master-game frequencies, not move optimality or playing strength. Candidate remains inactive pending paired match evaluation."
 }
