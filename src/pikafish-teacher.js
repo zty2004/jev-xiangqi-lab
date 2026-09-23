@@ -58,9 +58,13 @@ export class PikafishTeacher {
     this.send(`go movetime ${ms}`);
     const line = await finished;
     const best = line.split(/\s+/)[1];
-    const selectedDepth = [...byDepth.keys()].sort((a, b) => byDepth.get(b).size - byDepth.get(a).size || b - a)[0] || 0;
+    const uniqueCount = depth => new Set([...byDepth.get(depth).values()].map(item => item.move)).size;
+    const selectedDepth = [...byDepth.keys()].sort((a, b) => uniqueCount(b) - uniqueCount(a) || b - a)[0] || 0;
+    const seen = new Set();
     const candidates = [...(byDepth.get(selectedDepth)?.entries() || [])]
-      .sort((a, b) => a[0] - b[0]).map(([rank, item]) => ({ rank, ...item }));
+      .sort((a, b) => a[0] - b[0])
+      .filter(([, item]) => { if (seen.has(item.move)) return false; seen.add(item.move); return true; })
+      .map(([rank, item]) => ({ rank, ...item }));
     return { best, depth: selectedDepth, candidates };
   }
 
