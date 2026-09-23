@@ -45,10 +45,10 @@ export class LocalChoice {
     });
   }
   async ready() { await this.initialized; }
-  async rank(fen, moves, timeoutMs = 10000) {
+  async rank(fen, moves, timeoutMs = 10000, history = []) {
     await this.ready();
     const result = this.read(timeoutMs);
-    this.process.stdin.write(JSON.stringify({ fen, moves }) + '\n');
+    this.process.stdin.write(JSON.stringify({ fen, moves, history }) + '\n');
     const response = await result;
     return validateChoiceResponse(response, moves);
   }

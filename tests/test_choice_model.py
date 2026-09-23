@@ -16,6 +16,45 @@ spec.loader.exec_module(choice_model)
 
 
 class ChoiceModelTests(unittest.TestCase):
+    def test_history_planes_and_outcome_labels_use_side_to_move(self):
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR b - - 30 1"
+        previous = ["rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w"]
+        planes = choice_model.encode_position(fen, previous, 2, 46)
+        self.assertEqual(tuple(planes.shape), (46, 10, 9))
+        self.assertTrue(torch.equal(planes[:14], planes[16:30]))
+        self.assertAlmostEqual(float(planes[44, 0, 0]), 0.25)
+        self.assertAlmostEqual(float(planes[45, 0, 0]), 2 / 3)
+        row = {"fen": fen, "legal": ["a9a8", "b7b8"], "best": "a9a8",
+               "candidates": [], "previous": previous, "repetitionCount": 2, "winner": "red"}
+        loss_sample = choice_model.TeacherDataset([row], 46, "wdl", "best")[0]
+        self.assertEqual(int(loss_sample[3]), 0)
+        self.assertEqual(float(loss_sample[5]), 1)
+        self.assertEqual(float(loss_sample[2][0]), 1)
+        row["winner"] = "black"
+        self.assertEqual(int(choice_model.TeacherDataset([row], 46, "wdl")[0][3]), 2)
+        row["winner"] = "draw"
+        self.assertEqual(int(choice_model.TeacherDataset([row], 46, "wdl")[0][3]), 1)
+        row["winner"] = None
+        self.assertEqual(float(choice_model.TeacherDataset([row], 46, "wdl")[0][5]), 0)
+
+    def test_history_labels_require_exact_teacher_hash_and_coverage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            teacher = Path(directory) / "teacher.jsonl"
+            labels = Path(directory) / "labels.jsonl"
+            row = {"kind": "position", "game": 0, "ply": 8, "fen": "board w",
+                   "legal": ["a0a1"], "best": "a0a1"}
+            teacher.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            meta = {"kind": "meta", "schema": "history-labels-v1",
+                    "teacherSha256": choice_model.sha256_file(teacher)}
+            label = {"kind": "history-label", "game": 0, "ply": 8,
+                     "previous": ["prior b"], "repetitionCount": 1, "winner": "draw"}
+            labels.write_text(json.dumps(meta) + "\n" + json.dumps(label) + "\n", encoding="utf-8")
+            enriched = choice_model.attach_history_labels([row], labels, teacher)
+            self.assertEqual(enriched[0]["winner"], "draw")
+            teacher.write_text(json.dumps({**row, "best": "a0a2"}) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "do not match"):
+                choice_model.attach_history_labels([row], labels, teacher)
+
     def test_multiple_teacher_files_keep_game_ids_separate(self):
         with tempfile.TemporaryDirectory() as directory:
             files = []

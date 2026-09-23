@@ -1,0 +1,79 @@
+{
+  "status": "experimental-candidates-not-promoted",
+  "date": "2026-09-23",
+  "host": "dash-dev-191-root",
+  "physicalGpuIndex": 0,
+  "physicalGpuUuid": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "cudaVisibleDevices": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "visibleGpuCount": 1,
+  "otherGpuUsedByTheseRuns": false,
+  "torchVersion": "2.11.0a0+a6c236b9fd.nv26.03.46836102",
+  "historyLabels": {
+    "path": "data/history-labels-160.jsonl",
+    "sha256": "b4fe3d092b16be601a8157ebd380ee375e2eabafc8dd25070de95c1a24567f23"
+  },
+  "architecture": {
+    "inputChannels": 46,
+    "boardHistoryFrames": 2,
+    "halfmoveAndRepetitionPlanes": 2,
+    "channels": 64,
+    "residualBlocks": 4,
+    "valueHead": "side-to-move loss/draw/win",
+    "policy": "masked distribution over every legal move"
+  },
+  "commonTraining": {
+    "batchSize": 256,
+    "learningRate": 0.0005,
+    "epochsMaximum": 12,
+    "earlyStopPatience": 3,
+    "seed": 20260923
+  },
+  "experiments": [
+    {
+      "name": "game-history-hard-best",
+      "command": "bash train/run_gpu_history_wdl.sh",
+      "trainingCodeSha256": "04e2e570168fa6ecdbb38f8ccb5a824b1ef952c1af19dd1b7186729881918b1e",
+      "scriptSha256": "4ce9bb7281ec84270ca97785a4db69d75a21c6d1deef757b43d038a010a45428",
+      "model": "models/choice-history-wdl-gpu0.pt",
+      "modelSha256": "1170a5f976edb8d659bacbca7a7c876884c46c839690af37f4e51d875a439e58",
+      "teacherSources": ["data/teacher-games-160.jsonl"],
+      "policyTarget": "teacher best move one-hot",
+      "splitSizes": { "train": 11203, "validation": 1746, "calibration": 1547, "test": 1573 },
+      "bestEpoch": 2,
+      "stoppedAtEpoch": 5,
+      "testPolicy": { "count": 1573, "top1": 0.1691036236490782, "nll": 3.0785769161749506, "brier": 0.9124529698208799, "ece10": 0.02721808965626372 },
+      "testWdl": { "count": 1048, "accuracy": 0.5066793893129771, "nll": 0.7690606136412501, "brier": 0.5053692382141834 },
+      "cleanComparison": {
+        "count": 637,
+        "exclusions": "positions seen in the prior model's training split or opening library",
+        "newPolicyTop1": 0.18524332810047095,
+        "priorPolicyTop1": 0.18995290423861852,
+        "newPolicyNll": 3.0564186715225405,
+        "priorPolicyNll": 2.948181920559986
+      }
+    },
+    {
+      "name": "mixed-history-soft-teacher",
+      "command": "bash train/run_gpu_history_wdl_mixed.sh",
+      "trainingCodeSha256": "0ddcce295bafeda83e9d76a3ffe1a2687b4de347c1cd06f2de7bf2c619e56c16",
+      "scriptSha256": "d7864cee3ea744f1fe8a7b5b3f60a5322caaf5b28f18091986ad1f1178eae181",
+      "model": "models/choice-history-wdl-mixed-gpu0.pt",
+      "modelSha256": "8b66039f605aa00b1a4c2e6ee8791ab1902431818454d19b3f9c5d9a5acc715f",
+      "teacherSources": ["data/teacher-openings-5000.jsonl", "data/teacher-games-160.jsonl"],
+      "openingData": "data/opening-positions.jsonl",
+      "policyTarget": "existing MultiPV-derived soft label",
+      "splitSizes": { "train": 16221, "validation": 2304, "calibration": 2202, "test": 2174 },
+      "bestEpoch": 2,
+      "stoppedAtEpoch": 5,
+      "testPolicy": { "count": 2174, "top1": 0.20423183072677092, "nll": 2.882431829950671, "brier": 0.8909953655238094, "ece10": 0.02487546341063621 },
+      "priorModelSameTestPolicy": { "count": 2174, "top1": 0.20883164673413063, "nll": 2.853583900004091, "brier": 0.8867073454161576, "ece10": 0.019638329471882154 },
+      "testWdl": { "count": 1226, "accuracy": 0.5097879282218597, "nll": 0.7806185496966055, "brier": 0.528868188574108 },
+      "trainingFrequencyWdlBaseline": { "count": 1226, "nll": 0.7650054023460385, "brier": 0.5072086109017797 }
+    }
+  ],
+  "interpretation": [
+    "Both history-aware candidates trail the prior model in teacher imitation on comparable held-out positions.",
+    "The mixed model's WDL head has worse NLL and Brier score than a constant distribution based on training frequencies; it is not ready to guide search.",
+    "Teacher imitation and WDL metrics do not establish match strength. Candidate weights remain inactive until paired games are reviewed."
+  ]
+}

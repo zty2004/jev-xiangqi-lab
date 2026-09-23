@@ -46,7 +46,7 @@ io.on('line', async line => {
       else {
         const requestedMs = timeIndex >= 0 ? Number(tokens[timeIndex + 1]) : 5000;
         const started = performance.now();
-        const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(100, requestedMs)) : null;
+        const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(100, requestedMs), history) : null;
         const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
         const result = chooseMove(position, { timeMs: Math.max(10, requestedMs - (performance.now() - started)),
           maxDepth: depthIndex >= 0 ? Number(tokens[depthIndex + 1]) : 12, history: history.slice(0, -1), priors });

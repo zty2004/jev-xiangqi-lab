@@ -32,7 +32,7 @@ function view(position, history = []) {
 }
 
 async function analyzePosition(position, history, timeMs, multiPv = 1) {
-  const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(5000, timeMs)) : null;
+  const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(5000, timeMs), history) : null;
   const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
   const analysis = chooseMove(position, { timeMs, history: history.slice(0, -1), priors, multiPv });
   return { analysis, ranking, priors };
