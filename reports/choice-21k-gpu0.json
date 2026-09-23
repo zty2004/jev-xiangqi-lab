@@ -1,0 +1,58 @@
+{
+  "status": "candidate-not-promoted",
+  "sourceCommit": "da9569b",
+  "host": "dash-dev-191-root",
+  "physicalGpuIndex": 0,
+  "physicalGpuUuid": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "cudaVisibleDevices": "0",
+  "visibleDeviceCount": 1,
+  "gpu1UsedByThisRun": false,
+  "torchVersion": "2.11.0a0+a6c236b9fd.nv26.03.46836102",
+  "command": "bash train/run_gpu_21k.sh",
+  "seed": 20260923,
+  "epochsRequested": 12,
+  "batchSize": 256,
+  "channels": 64,
+  "residualBlocks": 4,
+  "bestEpoch": 1,
+  "bestValidationLoss": 3.0525331762101917,
+  "bestValidationTop1": 0.2052951388888889,
+  "epochValidation": [
+    { "epoch": 1, "loss": 3.0525, "top1": 0.205 },
+    { "epoch": 2, "loss": 3.0534, "top1": 0.203 },
+    { "epoch": 3, "loss": 3.1098, "top1": 0.211 },
+    { "epoch": 4, "loss": 3.1668, "top1": 0.210 },
+    { "epoch": 5, "loss": 3.1155, "top1": 0.214 },
+    { "epoch": 6, "loss": 3.1878, "top1": 0.197 },
+    { "epoch": 7, "loss": 3.2171, "top1": 0.202 },
+    { "epoch": 8, "loss": 3.1920, "top1": 0.201 },
+    { "epoch": 9, "loss": 3.3470, "top1": 0.194 },
+    { "epoch": 10, "loss": 3.2873, "top1": 0.198 },
+    { "epoch": 11, "loss": 3.5065, "top1": 0.205 },
+    { "epoch": 12, "loss": 3.4390, "top1": 0.179 }
+  ],
+  "splitSizes": { "trainIncludingOpeningSamples": 16221, "validation": 2304, "calibration": 2202, "test": 2174 },
+  "temperature": 0.7879904225539432,
+  "calibration": { "count": 2202, "top1": 0.21162579473206175, "nll": 2.8485302566682082, "brier": 0.8770221665867018, "meanTopProbability": 0.21101756475791403, "ece10": 0.010079750268433335 },
+  "testUncalibrated": { "count": 2174, "top1": 0.20883164673413063, "nll": 2.867933379112707, "brier": 0.8892241985346049, "meanTopProbability": 0.1692966942186189, "ece10": 0.04510576443158933 },
+  "testCalibrated": { "count": 2174, "top1": 0.20883164673413063, "nll": 2.8535834771216453, "brier": 0.8867074029645244, "meanTopProbability": 0.21264751865198664, "ece10": 0.019641829896187058 },
+  "freshTestExclusions": ["data/teacher-openings-5000.jsonl", "data/opening-positions.jsonl"],
+  "freshTest": {
+    "count": 1973,
+    "newModel": { "top1": 0.20476431829700964, "nll": 2.8645183613674994, "brier": 0.887803523448658, "ece10": 0.01815461920214618 },
+    "priorModel": { "top1": 0.1915864166244298, "nll": 2.916944874303015, "brier": 0.8981808283216628, "ece10": 0.0351252705727322 }
+  },
+  "modelPath": "models/choice-21k-gpu0.pt",
+  "modelSha256": "d9063fe883bf0a111f0563341f4e89dd9be2d206ffc998118e4b4399567f6550",
+  "priorModelSha256": "6e21876c791421f48883ec49b25d1c7b69b5af040cd0647412b211a07e0b68ab",
+  "teacherSources": [
+    { "path": "data/teacher-openings-5000.jsonl", "sha256": "07389263eed847d86a084380d7283cfd0b4a967684bbcd718536b7fd82517f09" },
+    { "path": "data/teacher-games-160.jsonl", "sha256": "f8752cf60f099002fd23f70a2f6085a7f9a7eefe0e80866ca2927f157d5651d5" }
+  ],
+  "openingDataSha256": "9a5f1ca8c7b461e2a00986ff9803dd8ec2f70693b5e84403e2013c67093aad5c",
+  "notes": [
+    "Validation loss rose after epoch 1; the saved checkpoint is the epoch-1 minimum.",
+    "The model still receives the current FEN only and its teacher policy targets are heuristic MultiPV-derived labels. Near repetition cycles, a FEN-only teacher cannot represent long-check history.",
+    "Fresh-test metrics measure agreement with the limited-time teacher and do not demonstrate stronger match play."
+  ]
+}
