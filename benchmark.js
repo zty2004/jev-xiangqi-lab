@@ -101,6 +101,8 @@ async function main() {
     await Promise.all([baseline.ready(), pikafish.ready()]);
     const settings = { moveTime, gameCount, maxPlies, openings, nodeVersion: process.version,
       openingBookHash: openingBook ? await fileHash(openingBook) : null,
+      masterOpeningBookHash: process.env.OPENING_BOOK === 'off' ? null :
+        await fileHash(process.env.OPENING_BOOK || path.join(root, 'data/master-opening-book.json')),
       openingPlies: openingBook ? openingPlies : null,
       baselineName: baseline.idName, pikafishName: pikafish.idName,
       baselineHash: await fileHash(path.join(root, 'src/engine.js')),

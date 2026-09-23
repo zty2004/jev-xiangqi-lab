@@ -11,6 +11,8 @@
 | [AI Agent Arcade](https://github.com/linxule/arcade) | MIT 项目含 AI 智能体的象棋对局归档；本次未取得并核验实际棋谱文件。 | 待导入器能识别其格式后按合法性与去重规则筛选。 |
 | [CCPD](https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset) | Yu-Han Tseng 与 Bo-Nian Chen 的 CC BY 4.0 棋谱库；本项目已有 738 条可用开局线。另核查 208 份「電腦對局」PGN。 | 新增 `data/ccpd-computer-games.jsonl`：196 局可重放、20,112 半回合，其中 155 局标为电脑对局竞赛、41 局标为人机赛。5 份重复、7 份未通过导入；101 局原文件结果为 `*`，保留为未知结果。人机赛单独标记，不当作纯 AI 自对弈。 |
 
+CCPD 的「大师对局／以开局分类」另外提供 6,963 份 PGN。本项目核对前 24 个半回合，去掉 409 份重复，得到 6,554 局和 51,009 个开局局面，汇成对弈时使用的 [大师开局库](reports/master-opening-book.json)。这些是**人类大师棋谱**，不计入上表的 AI 棋谱数；ECCO C 类仅用于标识中炮对屏风马体系，库中走法的频次不是胜率。
+
 ## 纳入规则
 
 1. 每局保存起始 FEN、按 ICCS 坐标记法排列的全部走法、开局前缀、最终 FEN、胜负或截断原因。截断局不冒充胜负。

@@ -50,13 +50,13 @@ function renderRecommendations() {
       'font-size': 19, 'font-weight': 800 });
     text.textContent = String(index + 1); overlay.append(text);
     const row = document.createElement('li'), title = document.createElement('strong'), detail = document.createElement('span');
-    title.textContent = `${index + 1}. ${item.move}`;
+    title.textContent = `${index + 1}. ${item.notation}`;
     detail.textContent = `搜索评分 ${item.score >= 0 ? '+' : ''}${item.score}` +
       (item.probability === undefined ? '' : ` · 模型 ${(item.probability * 100).toFixed(1)}%`);
     row.append(title, detail);
     if (item.pv?.length > 1) {
       const variation = document.createElement('small');
-      variation.textContent = `后续推演 ${item.pv.join(' → ')}`;
+      variation.textContent = `后续推演 ${item.pvNotation.join(' → ')}`;
       row.append(variation);
     }
     list.append(row);
@@ -89,8 +89,10 @@ function render() {
   const turn = state.side === 'red' ? '红方' : '黑方';
   $('status').textContent = state.result ? `${state.result.winner ? (state.result.winner === 'red' ? '红方' : '黑方') + '获胜' : '和棋'}` :
     busy ? mode === 'teach' ? '正在分析推荐…' : '电脑正在思考…' : `${turn}走棋${state.inCheck ? ' · 被将军' : ''}`;
+  const opening = state.analysis?.opening;
   $('detail').textContent = state.result ? state.result.reason : mode === 'teach' ? '双方都由你走棋；推荐仅供参考。' :
-    state.side === human ? '选择棋子，再选择落点。' : `搜索引擎正在为${turn}选招。`;
+    opening ? `${opening.screenHorseRepertoire ? '屏风马开局' : '大师开局库'}：${state.moveChinese} · ${opening.masterGames} 局样本。选择棋子，再选择落点。` :
+      state.side === human ? '选择棋子，再选择落点。' : `搜索引擎正在为${turn}选招。`;
   $('move-count').textContent = `${snapshots.length ? snapshots.length - 1 : 0} 步`;
   $('undo').disabled = busy || snapshots.length <= (mode === 'teach' ? 1 : human === 'black' ? 2 : 1);
   $('new').disabled = busy; $('mode').disabled = busy; $('side').disabled = busy;
@@ -103,7 +105,7 @@ function render() {
   for (let i = 1; i < snapshots.length; i++) {
     const li = document.createElement('li'), count = document.createElement('span');
     count.textContent = `${Math.ceil(i / 2)}.${i % 2 ? '红' : '黑'}`;
-    li.append(count, document.createTextNode(snapshots[i].move || ''));
+    li.append(count, document.createTextNode(snapshots[i].moveChinese || ''));
     list.append(li);
   }
   list.scrollTop = list.scrollHeight;

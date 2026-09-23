@@ -27,7 +27,10 @@ export function chooseMove(position, options = {}) {
   const maxDepth = Math.max(1, Math.min(20, Number(options.maxDepth) || 12));
   const start = performance.now(), deadline = start + timeMs;
   const table = new Map(), history = new Map(), killers = Array.from({ length: 64 }, () => []);
-  const rootMoves = legalMoves(position);
+  const legalRootMoves = legalMoves(position);
+  const allowedRootMoves = options.allowedRootMoves ? new Set(options.allowedRootMoves) : null;
+  const restricted = allowedRootMoves ? legalRootMoves.filter(move => allowedRootMoves.has(moveName(move))) : [];
+  const rootMoves = restricted.length ? restricted : legalRootMoves;
   const priors = options.priors || null;
   const fullRootScores = Boolean(options.fullRootScores);
   if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [] };

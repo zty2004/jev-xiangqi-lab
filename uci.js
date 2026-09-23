@@ -2,10 +2,13 @@ import readline from 'node:readline';
 import { chooseMove } from './src/engine.js';
 import { START_FEN, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 import { LocalChoice } from './src/local-choice.js';
+import { loadMasterOpeningBook, masterOpeningCandidates } from './src/opening-book.js';
 
 let position = parseFen();
 let history = [positionKey(position)];
 const localChoice = process.env.CHOICE_MODEL ? new LocalChoice(process.env.CHOICE_MODEL) : null;
+const masterBook = process.env.OPENING_BOOK === 'off' ? null :
+  loadMasterOpeningBook(process.env.OPENING_BOOK || new URL('./data/master-opening-book.json', import.meta.url));
 const io = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
 
 function setPosition(command) {
@@ -48,9 +51,12 @@ io.on('line', async line => {
         const started = performance.now();
         const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(100, requestedMs), history) : null;
         const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
+        const bookMoves = masterOpeningCandidates(position, masterBook);
         const result = chooseMove(position, { timeMs: Math.max(10, requestedMs - (performance.now() - started)),
-          maxDepth: depthIndex >= 0 ? Number(tokens[depthIndex + 1]) : 12, history: history.slice(0, -1), priors });
+          maxDepth: depthIndex >= 0 ? Number(tokens[depthIndex + 1]) : 12, history: history.slice(0, -1), priors,
+          allowedRootMoves: bookMoves.length ? bookMoves.map(item => item.move) : null });
         const selected = result.move ? moveName(result.move) : '0000';
+        if (bookMoves.length) console.log(`info string master opening book ${bookMoves.length} candidate moves, ${bookMoves.find(item => item.move === selected)?.masterGames || 0} master games`);
         if (ranking) console.log(`info string local choice ranked ${ranking.choices.length} legal moves, selected ${selected} probability ${(priors.get(selected) || 0).toFixed(4)}`);
         console.log(`info depth ${result.depth} score cp ${result.score} nodes ${result.nodes} time ${result.timeMs} pv ${result.pv.join(' ')}`);
         console.log(`bestmove ${selected}`);

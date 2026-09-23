@@ -1,6 +1,6 @@
 # 中国象棋 AI 实验室
 
-目标是训练**自有的 Jev 式象棋决策模型**，无需 TypeSafe Jev API 或 Key。当前交付合法走法、自研限时搜索、局面到全部合法走法的概率模型、UCI 接口、本地网页、开局棋谱导入和与外部 Pikafish 对弈的评测脚本。模型定义与训练路线见 [DESIGN.md](DESIGN.md)。
+目标是训练**自有的 Jev 式象棋决策模型**，无需 TypeSafe Jev API 或 Key。当前交付合法走法、自研限时搜索、局面到全部合法走法的概率模型、UCI 接口、本地网页、实战开局库和与外部 Pikafish 对弈的评测脚本。模型定义与训练路线见 [DESIGN.md](DESIGN.md)。
 
 ## 本地运行
 
@@ -102,6 +102,10 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --op
 
 已将 [Chinese Chess Practical Dataset (CCPD)](https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset) 的 961 条开局 PGN 转换并逐步校验为坐标走法：738 条不同变化可用，193 条与已有变化重复，30 条未通过导入条件（其中 24 条不是标准初始局面）。得到 9,084 个不同开局局面。原始数据由 Yu-Han Tseng 与 Bo-Nian Chen（2026）提供，采用 CC BY 4.0；导出文件保留来源、许可、来源文件名和原始文件哈希。
 
+实际对弈现使用同一数据集按开局分类的 6,963 份大师对局 PGN：去掉 409 份重复后，6,554 局前 24 个半回合全部合法，汇成 51,009 个局面、56,835 个合法候选招。每招保留大师对局出现次数、ECCO C 类（中炮对屏风马）出现次数和原棋谱示例。黑方遇到中炮时优先走 C 类的主流变化；目前“炮二平五”后稳定走“马８进７”，镜像开局稳定走“马２进３”。[ECCO 2004 分类说明](https://www.xqbase.com/ecco/ecco_intro.htm)只定义开局类别，不证明某招必然最优；本书的频次也不是胜率。来源、失败项和校验见[大师开局库报告](reports/master-opening-book.json)。
+
+对弈时从至少 5 局大师对局支持的走法中，保留出现次数达到最多走法一半的前 3 招，再让本地选择模型排序并由自研搜索决定；无合格书招则正常搜索。最长使用到第 24 个半回合。网页的走棋记录、推荐和后续推演显示中文记谱。UCI 通信和训练文件继续使用坐标协议。可用 `OPENING_BOOK=off` 关闭对弈开局库以做对照实验。
+
 重新导入或生成训练局面：
 
 ```sh
@@ -109,6 +113,8 @@ node openings.js --input /absolute/path/to/CCPD/Dataset/開局 --output data/ope
 node book-positions.js --openings data/openings.json --output data/opening-positions.jsonl
 node teacher.js --pikafish /absolute/path/to/Pikafish --openings data/openings.json --opening-plies 8 --positions 1000 --movetime 100 --output data/teacher-openings.jsonl
 node verify-data.js data/teacher-openings.jsonl
+node master-opening-book.js --input /absolute/path/to/CCPD/Dataset/對局/大師對局/以開局分類 --source-commit 368a47a947773dd8692c026e286dd19b6277b993
+node verify-master-opening-book.js
 ```
 
 ## 后续训练方向
