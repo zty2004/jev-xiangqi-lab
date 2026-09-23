@@ -42,6 +42,20 @@
     "newModel": { "top1": 0.20476431829700964, "nll": 2.8645183613674994, "brier": 0.887803523448658, "ece10": 0.01815461920214618 },
     "priorModel": { "top1": 0.1915864166244298, "nll": 2.916944874303015, "brier": 0.8981808283216628, "ece10": 0.0351252705727322 }
   },
+  "externalMatch": {
+    "path": "benchmark-choice-21k-openings-5s.jsonl",
+    "sha256": "465eb549e4101713dde9318ce08f7f6965484f1c355cc5b4d30bd45281b70d04",
+    "opponent": "Pikafish 2026-09-06",
+    "moveTimeMsPerSide": 5000,
+    "openingPlies": 8,
+    "games": 2,
+    "score": 0,
+    "results": [
+      { "modelSide": "red", "winner": "black", "reason": "将死", "plies": 60 },
+      { "modelSide": "black", "winner": "red", "reason": "将死", "plies": 41 }
+    ],
+    "interpretation": "Two losses do not establish a reliable playing-strength estimate; this run provides no evidence to promote the model."
+  },
   "modelPath": "models/choice-21k-gpu0.pt",
   "modelSha256": "d9063fe883bf0a111f0563341f4e89dd9be2d206ffc998118e4b4399567f6550",
   "priorModelSha256": "6e21876c791421f48883ec49b25d1c7b69b5af040cd0647412b211a07e0b68ab",

@@ -63,7 +63,7 @@ AI 棋谱来源、纳入规则与 160 局新生成的完整自对弈棋谱见 [�
 python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --data data/teacher-games-160.jsonl --opening-data data/opening-positions.jsonl --opening-samples 2000 --output models/choice-v2.pt --epochs 10 --batch 128 --channels 64 --blocks 4 --device cpu
 ```
 
-`dash-dev-191-root` 的 GPU 0 训练实验使用 [GPU 固定脚本](train/run_gpu_21k.sh)，权重为 `models/choice-21k-gpu0.pt`，完整配置、哈希与评测见[训练报告](reports/choice-21k-gpu0.json)。在排除旧教师文件和开局库局面后的 1,973 个新测试局面上，新模型与教师最佳招一致率 20.48%，旧模型 19.16%；新模型 NLL 2.8645，旧模型 2.9169。这只说明教师模仿指标改善，当前网页仍使用旧模型，正式替换前还要看实战对局。
+`dash-dev-191-root` 的 GPU 0 训练实验使用 [GPU 固定脚本](train/run_gpu_21k.sh)，权重为 `models/choice-21k-gpu0.pt`，完整配置、哈希与评测见[训练报告](reports/choice-21k-gpu0.json)。在排除旧教师文件和开局库局面后的 1,973 个新测试局面上，新模型与教师最佳招一致率 20.48%，旧模型 19.16%；新模型 NLL 2.8645，旧模型 2.9169。这只说明教师模仿指标改善。新模型在相同 8 步开局、每步 5 秒、红黑轮换的 [2 局评测](benchmark-choice-21k-openings-5s.jsonl)中得 0/2，均被 Pikafish 将死；样本太少，不能据此估计稳定棋力。当前网页继续使用旧模型。
 
 ```sh
 mkdir -p data models
