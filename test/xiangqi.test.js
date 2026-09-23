@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chooseMove } from '../src/engine.js';
-import { START_FEN, isInCheck, legalMoves, makeMove, moveName, parseFen, playMove, toFen } from '../src/xiangqi.js';
+import { START_FEN, gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, playMove, positionKey, toFen } from '../src/xiangqi.js';
 
 function perft(position, depth) {
   if (depth === 0) return 1;
@@ -67,4 +67,39 @@ test('multi-line search returns legal continuations and the same top moves as fu
     let current = position;
     for (const notation of candidate.pv) current = playMove(current, notation);
   }
+});
+
+function replay(fen, moves) {
+  let position = parseFen(fen);
+  const history = [positionKey(position)];
+  for (const notation of moves) {
+    position = playMove(position, notation);
+    history.push(positionKey(position));
+  }
+  return { position, history };
+}
+
+test('the side giving perpetual check loses instead of receiving a repetition draw', () => {
+  const cases = [
+    ['4k4/4R4/9/9/9/9/9/9/9/5K3 b - - 0 1', ['e9d9', 'e8d8', 'd9e9', 'd8e8'], 'black', '红方长将判负'],
+    ['5k3/9/9/9/9/9/9/9/4r4/4K4 w - - 0 1', ['e0d0', 'e1d1', 'd0e0', 'd1e1'], 'red', '黑方长将判负'],
+  ];
+  for (const [fen, cycle, winner, reason] of cases) {
+    const once = replay(fen, cycle);
+    assert.equal(gameResult(once.position, once.history), null);
+    const twice = replay(fen, [...cycle, ...cycle]);
+    assert.deepEqual(gameResult(twice.position, twice.history), { winner, reason });
+  }
+});
+
+test('quiet repetition remains a draw and search penalizes a third checking cycle', () => {
+  const quiet = replay('4k4/9/9/9/9/9/9/9/9/R4K3 b - - 0 1',
+    ['e9d9', 'a0a1', 'd9e9', 'a1a0', 'e9d9', 'a0a1', 'd9e9', 'a1a0']);
+  assert.deepEqual(gameResult(quiet.position, quiet.history), { winner: null, reason: '三次重复局面' });
+
+  const checking = replay('4k4/4R4/9/9/9/9/9/9/9/5K3 b - - 0 1',
+    ['e9d9', 'e8d8', 'd9e9', 'd8e8', 'e9d9', 'e8d8', 'd9e9']);
+  const result = chooseMove(checking.position, { timeMs: 3000, maxDepth: 1,
+    fullRootScores: true, history: checking.history.slice(0, -1) });
+  assert.ok(result.candidates.find(item => item.move === 'd8e8').score < -29000);
 });

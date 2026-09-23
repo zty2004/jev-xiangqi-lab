@@ -101,6 +101,7 @@ async function main() {
     await teacher.ready();
     const teacherBinarySha256 = createHash('sha256').update(readFileSync(binary)).digest('hex');
     const metadata = { model: 'Pikafish', positions, games: gameLimit, moveTime, seed,
+      repetitionRule: 'single-side-perpetual-check-loss-v1',
       teacherBinarySha256,
       openingBook: openingBook || null, openingPlies: openingBook ? openingPlies : null, openingLines: openings.length,
       openingBookHash: openingBook ? createHash('sha256').update(readFileSync(openingBook)).digest('hex') : null,

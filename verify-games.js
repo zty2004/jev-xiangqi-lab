@@ -67,6 +67,7 @@ for await (const row of records(teacherFile)) {
 }
 if (!teacherMeta || teacherMeta.teacherBinarySha256 !== gamesMeta.teacherBinarySha256 ||
     teacherMeta.openingBookHash !== gamesMeta.openingBookHash ||
+    teacherMeta.repetitionRule !== gamesMeta.repetitionRule ||
     (Number.isInteger(teacherMeta.positions) && teacherMeta.positions !== teacherPositions) ||
     teacherPositions !== plies - [...games.values()].reduce((sum, game) => sum + game.opening.length, 0))
   throw new Error('Teacher/game metadata or position count mismatch');

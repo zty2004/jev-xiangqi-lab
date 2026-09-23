@@ -131,9 +131,37 @@ export function playMove(position, notation) {
   return makeMove(position, move);
 }
 
+export function repetitionResult(history = []) {
+  const key = history.at(-1);
+  if (!key) return null;
+  const occurrences = [];
+  for (let index = 0; index < history.length; index++) if (history[index] === key) occurrences.push(index);
+  if (occurrences.length < 3) return null;
+
+  // A repeated position alone is not enough to call a draw in Xiangqi. Inspect
+  // the moves between the last three occurrences and identify a side that
+  // checked on every one of its turns throughout both repetitions.
+  const start = occurrences.at(-3);
+  const moves = { red: 0, black: 0 }, checks = { red: 0, black: 0 };
+  for (let index = start + 1; index < history.length; index++) {
+    const position = parseFen(`${history[index]} - - 0 1`);
+    const mover = position.side === 'red' ? 'black' : 'red';
+    moves[mover]++;
+    if (isInCheck(position)) checks[mover]++;
+  }
+  const redPerpetual = moves.red > 0 && checks.red === moves.red;
+  const blackPerpetual = moves.black > 0 && checks.black === moves.black;
+  if (redPerpetual && !blackPerpetual) return { winner: 'black', reason: '红方长将判负' };
+  if (blackPerpetual && !redPerpetual) return { winner: 'red', reason: '黑方长将判负' };
+  return { winner: null, reason: '三次重复局面' };
+}
+
 export function gameResult(position, history = []) {
-  const key = toFen(position).split(' ').slice(0, 2).join(' ');
-  if (history.filter(item => item === key).length >= 3) return { winner: null, reason: '三次重复局面' };
+  const key = positionKey(position);
+  if (history.at(-1) === key) {
+    const repetition = repetitionResult(history);
+    if (repetition) return repetition;
+  }
   if (position.halfmove >= 120) return { winner: null, reason: '六十回合未吃子或走兵' };
   if (!legalMoves(position).length) return { winner: opponent(position.side), reason: isInCheck(position) ? '将死' : '困毙' };
   return null;

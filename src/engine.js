@@ -1,4 +1,4 @@
-import { isInCheck, legalMoves, makeMove, moveName, positionKey, pseudoMoves } from './xiangqi.js';
+import { isInCheck, legalMoves, makeMove, moveName, positionKey, pseudoMoves, repetitionResult } from './xiangqi.js';
 
 const VALUES = { k: 20000, r: 1000, c: 470, n: 430, b: 220, a: 220, p: 120 };
 const MATE = 30000;
@@ -71,7 +71,11 @@ export function chooseMove(position, options = {}) {
   function negamax(pos, depth, alpha, beta, ply) {
     nodes++; checkTime();
     const key = positionKey(pos);
-    if (repetition.filter(item => item === key).length >= 2 || pos.halfmove >= 120) return 0;
+    if (repetition.filter(item => item === key).length >= 2) {
+      const result = repetitionResult([...repetition, key]);
+      if (result) return result.winner === null ? 0 : result.winner === pos.side ? MATE - ply : -MATE + ply;
+    }
+    if (pos.halfmove >= 120) return 0;
     if (depth <= 0) return quiescence(pos, alpha, beta, ply);
     const entry = table.get(key), originalAlpha = alpha;
     if (entry && entry.depth >= depth) {
@@ -140,7 +144,7 @@ export function chooseMove(position, options = {}) {
       } finally { repetition.pop(); }
       const best = scores[0];
       completed = { move: rootMoves.find(move => moveName(move) === best.move), depth,
-        score: best.score, pv: best.pv, candidates: scores.slice(0, 8) };
+        score: best.score, pv: best.pv, candidates: scores.slice(0, fullRootScores ? rootMoves.length : 8) };
       table.set(rootKey, { depth, score: best.score, move: best.move, flag: 'exact' });
     } catch (error) {
       if (!(error instanceof Stopped)) throw error;
