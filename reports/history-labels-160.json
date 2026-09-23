@@ -1,0 +1,17 @@
+{
+  "schema": "history-labels-v1",
+  "gamesPath": "data/ai-games-160.jsonl",
+  "teacherPath": "data/teacher-games-160.jsonl",
+  "gamesSha256": "a0e1521c2eb55f2604af5267b2a889f81789b198f18148c197af21310d286ca3",
+  "teacherSha256": "f8752cf60f099002fd23f70a2f6085a7f9a7eefe0e80866ca2927f157d5651d5",
+  "games": 160,
+  "positions": 16387,
+  "terminalPositions": 8995,
+  "censoredPositions": 7392,
+  "positionsWithTwoPriorBoards": 16387,
+  "repeatedPositions": 285,
+  "maxRepetitionCount": 2,
+  "redWinPositions": 3872,
+  "blackWinPositions": 4520,
+  "drawPositions": 603
+}
