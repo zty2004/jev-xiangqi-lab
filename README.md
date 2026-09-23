@@ -108,6 +108,8 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --op
 
 对弈时从至少 5 局大师对局支持的走法中，保留出现次数达到最多走法四分之一的前 3 招，再让本地选择模型排序并由自研搜索决定；无合格书招则正常搜索。最长使用到第 24 个半回合。中炮第一应手“马８进７”与后续屏风马体系的两种常见变化经[限时 Pikafish 分析](reports/opening-response-check.json)交叉检查。网页的走棋记录、推荐和后续推演显示中文记谱。UCI 通信和训练文件继续使用坐标协议。可用 `OPENING_BOOK=off` 关闭对弈开局库以做对照实验。
 
+另从同一大师库导出 [1,970 个训练局面](data/master-opening-positions.jsonl)：仅保留至少 5 局支持的局面，目标走法概率取自正式对弈时启用的开局候选及其大师对局频次，包含中炮对屏风马的分类约束。这个文件是监督学习输入；仅生成文件不会改变当前模型权重或证明棋力提高。
+
 重新导入或生成训练局面：
 
 ```sh
@@ -117,6 +119,7 @@ node teacher.js --pikafish /absolute/path/to/Pikafish --openings data/openings.j
 node verify-data.js data/teacher-openings.jsonl
 node master-opening-book.js --input /absolute/path/to/CCPD/Dataset/對局/大師對局/以開局分類 --source-commit 368a47a947773dd8692c026e286dd19b6277b993
 node verify-master-opening-book.js
+node master-book-positions.js --book data/master-opening-book.json --output data/master-opening-positions.jsonl
 ```
 
 ## 后续训练方向

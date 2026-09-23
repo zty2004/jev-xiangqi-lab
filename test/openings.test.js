@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { chineseMove, formatChineseLine, formatChineseMove } from '../src/chinese-notation.js';
 import { loadMasterOpeningBook, loadOpeningLines, masterOpeningCandidates } from '../src/opening-book.js';
 import { chooseMove } from '../src/engine.js';
-import { moveName, parseFen, playMove } from '../src/xiangqi.js';
+import { moveName, parseFen, playMove, positionKey } from '../src/xiangqi.js';
 
 test('traditional Xiangqi notation converts to legal coordinate moves', () => {
   const start = parseFen();
@@ -37,6 +38,22 @@ test('master book gives the screen horse reply to the central cannon, including 
   let mainline = parseFen();
   for (const move of ['b2e2', 'b9c7', 'b0c2', 'a9b9', 'a0b0']) mainline = playMove(mainline, move);
   assert.deepEqual(masterOpeningCandidates(mainline, book).map(item => item.move), ['h9g7', 'c6c5']);
+});
+
+test('master-book training targets preserve the supported screen-horse choices', () => {
+  const rows = readFileSync(new URL('../data/master-opening-positions.jsonl', import.meta.url), 'utf8')
+    .trim().split('\n').slice(1).map(line => JSON.parse(line));
+  assert.ok(rows.length > 1000);
+  const byFen = new Map(rows.map(row => [row.fen.split(' ').slice(0, 2).join(' '), row]));
+  const center = playMove(parseFen(), 'b2e2');
+  const response = byFen.get(positionKey(center));
+  assert.equal(response.best, 'b9c7');
+  assert.deepEqual(response.policy, { b9c7: 1 });
+  for (const row of rows) {
+    assert.ok(row.legal.includes(row.best));
+    assert.ok(Object.keys(row.policy).every(move => row.legal.includes(move)));
+    assert.ok(Math.abs(Object.values(row.policy).reduce((sum, value) => sum + value, 0) - 1) < 1e-9);
+  }
 });
 
 test('CCPD opening book has validated distinct prefixes for paired matches', () => {
