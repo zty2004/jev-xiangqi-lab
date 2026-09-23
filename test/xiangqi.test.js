@@ -53,3 +53,18 @@ test('teaching analysis ranks distinct legal moves with full root scores', () =>
   assert.ok(result.candidates.every(item => allowed.has(item.move) && Number.isFinite(item.score)));
   assert.ok(result.candidates.every((item, index) => !index || result.candidates[index - 1].score >= item.score));
 });
+
+test('multi-line search returns legal continuations and the same top moves as full search', () => {
+  const position = parseFen();
+  const full = chooseMove(position, { timeMs: 10000, maxDepth: 3, fullRootScores: true });
+  const lines = chooseMove(position, { timeMs: 10000, maxDepth: 3, multiPv: 3 });
+  assert.equal(lines.depth, 3);
+  assert.deepEqual(lines.candidates.map(item => [item.move, item.score]),
+    full.candidates.slice(0, 3).map(item => [item.move, item.score]));
+  for (const candidate of lines.candidates) {
+    assert.equal(candidate.pv[0], candidate.move);
+    assert.ok(candidate.pv.length > 1, 'search should show more than the next move');
+    let current = position;
+    for (const notation of candidate.pv) current = playMove(current, notation);
+  }
+});

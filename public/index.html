@@ -49,7 +49,7 @@
           <label for="orientation">棋盘方向</label>
           <select id="orientation"><option value="red">红方在下</option><option value="black">黑方在下</option></select>
           <label for="time" id="time-label">电脑思考时间</label>
-          <select id="time"><option value="500">快速 · 0.5 秒</option><option value="1000" selected>标准 · 1 秒</option><option value="3000">深入 · 3 秒</option><option value="5000">评测 · 5 秒</option></select>
+          <select id="time"><option value="500">快速 · 0.5 秒</option><option value="1000">标准 · 1 秒</option><option value="3000">深入 · 3 秒</option><option value="5000" selected>深入 · 5 秒</option><option value="10000">长考 · 10 秒</option><option value="20000">长考 · 20 秒</option></select>
           <div id="recommendation-control" hidden>
             <label for="recommendation-count">推荐招数</label>
             <select id="recommendation-count"><option value="1">前 1 招</option><option value="2">前 2 招</option><option value="3" selected>前 3 招</option><option value="4">前 4 招</option><option value="5">前 5 招</option></select>
@@ -58,7 +58,7 @@
         </div>
         <div id="recommendations-card" class="recommendations-card" hidden>
           <div class="card-heading"><span class="section-label">引擎推荐</span><span id="analysis-depth"></span></div>
-          <p class="recommendation-hint">棋盘上的数字是推荐排名。你仍可选择任意合法走法。</p>
+          <p class="recommendation-hint">棋盘上的数字是推荐排名。每招下方显示搜索推演的后续走法；你仍可选择任意合法走法。</p>
           <ol id="recommendations"></ol>
         </div>
         <div class="moves-card">

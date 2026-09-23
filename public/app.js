@@ -53,7 +53,13 @@ function renderRecommendations() {
     title.textContent = `${index + 1}. ${item.move}`;
     detail.textContent = `搜索评分 ${item.score >= 0 ? '+' : ''}${item.score}` +
       (item.probability === undefined ? '' : ` · 模型 ${(item.probability * 100).toFixed(1)}%`);
-    row.append(title, detail); list.append(row);
+    row.append(title, detail);
+    if (item.pv?.length > 1) {
+      const variation = document.createElement('small');
+      variation.textContent = `后续推演 ${item.pv.join(' → ')}`;
+      row.append(variation);
+    }
+    list.append(row);
   }
 }
 

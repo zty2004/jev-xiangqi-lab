@@ -31,12 +31,10 @@ function view(position, history = []) {
     result: gameResult(position, history) };
 }
 
-async function analyzePosition(position, history, timeMs, fullRootScores = false) {
-  const started = performance.now();
+async function analyzePosition(position, history, timeMs, multiPv = 1) {
   const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(5000, timeMs)) : null;
   const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
-  const analysis = chooseMove(position, { timeMs: Math.max(10, timeMs - (performance.now() - started)),
-    history: history.slice(0, -1), priors, fullRootScores });
+  const analysis = chooseMove(position, { timeMs, history: history.slice(0, -1), priors, multiPv });
   return { analysis, ranking, priors };
 }
 
@@ -63,22 +61,22 @@ const server = http.createServer(async (request, response) => {
     } else if (request.method === 'POST' && url.pathname === '/api/ai') {
       const data = await body(request), position = parseFen(data.fen), history = data.history || [];
       if (gameResult(position, history)) return json(response, 400, { error: '棋局已经结束' });
-      const timeMs = Math.min(10_000, Math.max(100, Number(data.timeMs) || 1000));
+      const timeMs = Math.min(30_000, Math.max(100, Number(data.timeMs) || 1000));
       const { analysis, ranking, priors } = await analyzePosition(position, history, timeMs);
       if (!analysis.move) return json(response, 400, { error: '无合法走法' });
       const chosen = analysis.move;
       const choice = ranking ? { selected: moveName(chosen), probability: priors.get(moveName(chosen)) || 0,
         rankedMoves: ranking.choices.length } : null;
       const next = makeMove(position, chosen), nextHistory = [...history, positionKey(next)];
-      json(response, 200, { ...view(next, nextHistory), move: moveName(chosen), analysis: { depth: analysis.depth, score: analysis.score, nodes: analysis.nodes, timeMs: analysis.timeMs, choice }, history: nextHistory });
+      json(response, 200, { ...view(next, nextHistory), move: moveName(chosen), analysis: { depth: analysis.depth, score: analysis.score, nodes: analysis.nodes, timeMs: analysis.timeMs, pv: analysis.pv, choice }, history: nextHistory });
     } else if (request.method === 'POST' && url.pathname === '/api/analyze') {
       const data = await body(request), position = parseFen(data.fen), history = data.history || [];
       if (gameResult(position, history)) return json(response, 200, { recommendations: [], depth: 0, nodes: 0, timeMs: 0 });
-      const timeMs = Math.min(10_000, Math.max(100, Number(data.timeMs) || 1000));
+      const timeMs = Math.min(30_000, Math.max(100, Number(data.timeMs) || 1000));
       const count = Math.min(5, Math.max(1, Math.trunc(Number(data.count) || 3)));
-      const { analysis, priors } = await analyzePosition(position, history, timeMs, true);
+      const { analysis, priors } = await analyzePosition(position, history, timeMs, count);
       json(response, 200, { recommendations: analysis.candidates.slice(0, count).map(item => ({
-        move: item.move, score: item.score, ...(priors ? { probability: priors.get(item.move) || 0 } : {}) })),
+        move: item.move, score: item.score, pv: item.pv || [item.move], ...(priors ? { probability: priors.get(item.move) || 0 } : {}) })),
         depth: analysis.depth, nodes: analysis.nodes, timeMs: analysis.timeMs });
     } else json(response, 404, { error: 'Not found' });
   } catch (error) {

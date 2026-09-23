@@ -31,6 +31,7 @@ export function chooseMove(position, options = {}) {
   const priors = options.priors || null;
   const fullRootScores = Boolean(options.fullRootScores);
   if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [] };
+  const multiPv = fullRootScores ? rootMoves.length : Math.max(1, Math.min(rootMoves.length, Number(options.multiPv) || 1));
   let nodes = 0, completed = { move: rootMoves[0], depth: 0, score: evaluate(position), pv: [moveName(rootMoves[0])], candidates: rootMoves.map(move => ({ move: moveName(move), score: -evaluate(makeMove(position, move)) })).sort((a, b) => b.score - a.score).slice(0, 8) };
   const repetition = options.history ? [...options.history] : [];
 
@@ -104,21 +105,43 @@ export function chooseMove(position, options = {}) {
     return best;
   }
 
+  function continuation(move, depth) {
+    const line = [moveName(move)];
+    let next = makeMove(position, move);
+    for (let remaining = depth - 1; remaining > 0; remaining--) {
+      const entry = table.get(positionKey(next));
+      if (!entry?.move || entry.depth < remaining || entry.flag !== 'exact') break;
+      const reply = legalMoves(next).find(item => moveName(item) === entry.move);
+      if (!reply) break;
+      line.push(entry.move);
+      next = makeMove(next, reply);
+    }
+    return line;
+  }
+
   for (let depth = 1; depth <= maxDepth; depth++) {
     try {
-      let alpha = -INF, best = -INF, bestMove = rootMoves[0], scores = [];
+      let scores = [];
       const rootKey = positionKey(position), ttMove = table.get(rootKey)?.move || (completed.depth ? moveName(completed.move) : null);
       repetition.push(rootKey);
       try {
         for (const move of ordered(rootMoves, ttMove, 0)) {
-          const score = -negamax(makeMove(position, move), depth - 1, -INF, fullRootScores ? INF : -alpha, 1);
-          scores.push({ move: moveName(move), score });
-          if (score > best) { best = score; bestMove = move; }
-          if (score > alpha) alpha = score;
+          const next = makeMove(position, move);
+          if (scores.length >= multiPv) {
+            const threshold = scores[multiPv - 1].score;
+            const probe = -negamax(next, depth - 1, -INF, -threshold, 1);
+            if (probe <= threshold) continue;
+          }
+          const score = -negamax(next, depth - 1, -INF, INF, 1);
+          scores.push({ move: moveName(move), score, pv: continuation(move, depth) });
+          scores.sort((a, b) => b.score - a.score);
+          scores.length = Math.min(scores.length, multiPv);
         }
       } finally { repetition.pop(); }
-      completed = { move: bestMove, depth, score: best, pv: [moveName(bestMove)], candidates: scores.sort((a, b) => b.score - a.score).slice(0, 8) };
-      table.set(rootKey, { depth, score: best, move: moveName(bestMove), flag: 'exact' });
+      const best = scores[0];
+      completed = { move: rootMoves.find(move => moveName(move) === best.move), depth,
+        score: best.score, pv: best.pv, candidates: scores.slice(0, 8) };
+      table.set(rootKey, { depth, score: best.score, move: best.move, flag: 'exact' });
     } catch (error) {
       if (!(error instanceof Stopped)) throw error;
       break;

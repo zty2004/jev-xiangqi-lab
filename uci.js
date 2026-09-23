@@ -52,7 +52,7 @@ io.on('line', async line => {
           maxDepth: depthIndex >= 0 ? Number(tokens[depthIndex + 1]) : 12, history: history.slice(0, -1), priors });
         const selected = result.move ? moveName(result.move) : '0000';
         if (ranking) console.log(`info string local choice ranked ${ranking.choices.length} legal moves, selected ${selected} probability ${(priors.get(selected) || 0).toFixed(4)}`);
-        console.log(`info depth ${result.depth} score cp ${result.score} nodes ${result.nodes} time ${result.timeMs} pv ${selected}`);
+        console.log(`info depth ${result.depth} score cp ${result.score} nodes ${result.nodes} time ${result.timeMs} pv ${result.pv.join(' ')}`);
         console.log(`bestmove ${selected}`);
       }
     } else if (line === 'd') console.log(`Fen: ${toFen(position)}`);

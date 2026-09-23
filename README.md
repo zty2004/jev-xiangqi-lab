@@ -53,6 +53,8 @@ node benchmark.js --pikafish /absolute/path/to/Pikafish --openings data/openings
 
 当前提供一条可复现的教师蒸馏原型。`teacher.js` 让外部 Pikafish 自对弈并保存局面、所有合法走法、最佳走法与最多 8 个候选评分。`train/choice_model.py` 训练一个卷积网络，对每个局面的全部合法走法输出概率。按整局拆分训练、选模型、校准和测试，剔除跨组重复局面；校准集只用于拟合温度，最终测试集只报告结果。模型输出的 `concentration` 是本项目定义的概率分布集中度，不是 TypeSafe Jev 的 confidence 公式，也不是最高招的概率。
 
+选招并非只看下一手：搜索引擎使用逐层加深的多步搜索，并在叶节点继续检查吃子和将军变化。教学模式用 MultiPV 搜索前 1–5 招，展示每招的后续推演与实际完成深度；默认思考时间为 5 秒，可选 10 或 20 秒。模型目前只给根局面的合法走法提供先验，搜索树内部还没有逐节点模型评估，这是后续网络引导搜索的重点。界面的“深度”是搜索层数（半回合数），不是完整回合数。
+
 ```sh
 mkdir -p data models
 node teacher.js --pikafish /absolute/path/to/Pikafish-MacOS-universal --positions 1000 --movetime 100 --output data/teacher-1000.jsonl
