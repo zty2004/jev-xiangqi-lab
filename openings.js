@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chineseMove } from './src/chinese-notation.js';
+import { decodePgn, pgnHeader, pgnMoves } from './src/pgn.js';
 import { parseFen, playMove, START_FEN } from './src/xiangqi.js';
 
 const args = process.argv.slice(2);
@@ -14,28 +15,19 @@ if (!input || !Number.isInteger(maxPlies) || maxPlies < 1) {
   process.exit(2);
 }
 
-function header(pgn, key) { return pgn.match(new RegExp(`^\\[${key} "(.*?)"\\]`, 'm'))?.[1] || ''; }
-function tokens(pgn) {
-  const body = pgn.replace(/^\[.*\]$/gm, '').replace(/\{[^}]*\}/gs, '').replace(/\([^)]*\)/gs, '')
-    .replace(/\d+\.(?:\.\.)?/g, ' ');
-  return body.split(/\s+/).filter(value => /^[\p{Script=Han}０-９0-9]{4}$/u.test(value));
-}
-
 async function main() {
   const files = (await readdir(input)).filter(name => name.toLowerCase().endsWith('.pgn')).sort();
   const entries = [], failures = [], seen = new Set(), hash = createHash('sha256');
   for (const file of files) {
     const bytes = await readFile(path.join(input, file));
     hash.update(file); hash.update(bytes);
-    let pgn;
-    try { pgn = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
-    catch { pgn = new TextDecoder('big5', { fatal: true }).decode(bytes); }
+    const pgn = decodePgn(bytes);
     try {
-      const fen = header(pgn, 'FEN') || START_FEN;
+      const fen = pgnHeader(pgn, 'FEN') || START_FEN;
       let position = parseFen(fen);
       if (fen.split(' ')[0] !== START_FEN.split(' ')[0]) throw new Error('nonstandard start position');
       const moves = [];
-      for (const token of tokens(pgn).slice(0, maxPlies)) {
+      for (const token of pgnMoves(pgn).slice(0, maxPlies)) {
         const move = chineseMove(position, token);
         position = playMove(position, move);
         moves.push(move);
@@ -44,7 +36,7 @@ async function main() {
       const key = moves.join(' ');
       if (seen.has(key)) continue;
       seen.add(key);
-      entries.push({ name: header(pgn, 'Event'), ecco: header(pgn, 'ECCO'), moves, sourceFile: file });
+      entries.push({ name: pgnHeader(pgn, 'Event'), ecco: pgnHeader(pgn, 'ECCO'), moves, sourceFile: file });
     } catch (error) { failures.push({ file, reason: error.message }); }
   }
   const result = { kind: 'xiangqi-opening-book', source: 'Chinese Chess Practical Dataset (CCPD)',

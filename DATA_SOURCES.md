@@ -9,7 +9,7 @@
 | [Xiangqi-R1 完整对局数据](https://huggingface.co/datasets/hoduyquocbao/xiangqi-r1-master-dataset) | 数据卡称 Apache-2.0、约 519 MB，以多轮消息记录对局；本环境的文件 API 返回 401，尚未抽样验证合法性。 | 待取得可访问文件并做逐步重放后再纳入。 |
 | [Xiangqi Gen6 / NNUE 自对弈数据](https://huggingface.co/datasets/hoduyquocbao/xiangqi-gen6-platinum-dataset) | 数据卡称 MIT，主要宣称局面和权重；卡片自报体量与页面体量不同，尚未核实是否有完整对局。 | 暂不计入棋谱；后续逐文件检查。 |
 | [AI Agent Arcade](https://github.com/linxule/arcade) | MIT 项目含 AI 智能体的象棋对局归档；本次未取得并核验实际棋谱文件。 | 待导入器能识别其格式后按合法性与去重规则筛选。 |
-| [CCPD](https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset) | CC BY 4.0 的人类大师棋谱；本项目已有 738 条可用开局线。 | 只用作开局多样性，不计作 AI 棋谱。 |
+| [CCPD](https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset) | Yu-Han Tseng 与 Bo-Nian Chen 的 CC BY 4.0 棋谱库；本项目已有 738 条可用开局线。另核查 208 份「電腦對局」PGN。 | 新增 `data/ccpd-computer-games.jsonl`：196 局可重放、20,112 半回合，其中 155 局标为电脑对局竞赛、41 局标为人机赛。5 份重复、7 份未通过导入；101 局原文件结果为 `*`，保留为未知结果。人机赛单独标记，不当作纯 AI 自对弈。 |
 
 ## 纳入规则
 
@@ -27,5 +27,12 @@ node verify-games.js data/ai-games-160.jsonl data/teacher-games-160.jsonl
 ```
 
 校验与合并统计见 [数据报告](reports/data-v2.json)。新旧两个教师文件合计 21,387 条分析记录，跨源去重后有 20,901 个不同局面。训练器现在可重复传入 `--data`，并把不同来源的同号对局隔离；当前固定种子划分为训练 14,221、验证 2,304、校准 2,202、测试 2,174 条，跨分组相同局面为 0。开局家族级隔离尚未实现，因此这些数字只证明逐局与逐局面的隔离。
+
+CCPD 电脑对局的[导入报告](reports/ccpd-computer-import.json)记录原仓库提交、208 份源文件的整体哈希、每份失败或重复的原因；每局也保留分类、来源文件及其 SHA-256。导入文件只提供**走法和原 PGN 结果**，还没有深度教师分析标签。它有 18,059 个不同局面，其中 17,999 个未出现在已有两份教师文件中，且中残局占多数；`*` 结果不能充当和棋或胜负标签。复现导入（按报告中的源提交检出 CCPD）：
+
+```sh
+node ccpd-games.js --input /absolute/path/to/CCPD/Dataset/對局/電腦對局 --source-commit 368a47a947773dd8692c026e286dd19b6277b993 --compare-teacher data/teacher-openings-5000.jsonl --compare-teacher data/teacher-games-160.jsonl
+node verify-ccpd-games.js data/ccpd-computer-games.jsonl
+```
 
 长将判罚修复后，逐局重放将先前误标为重复和棋的 19 局改判为长将方负；没有棋局在新的终局点之后继续走子。原始教师分析只接收 FEN，不知道之前的重复历史，因此靠近循环终点的 `best` 标签不应被解释为遵守长将规则的最佳招。训练带历史输入的模型前，应排除这类局面或根据完整棋谱重标。

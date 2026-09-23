@@ -63,6 +63,8 @@ node benchmark.js --pikafish /absolute/path/to/Pikafish --openings data/openings
 
 重复局面不再一律判和：若一方在重复循环的每个己方回合都将军，第三次出现同一局面时判该长将方负；普通重复仍判和。终局判断与搜索评分共用此规则。此版本尚未覆盖世界象棋联合会规则中更复杂的长捉、将一捉等情况，参见[世界象棋规则第 20 条](https://www.wxf-xiangqi.org/images/wxf-rules/2018_World_XiangQi_Rules_English2018.pdf)。
 
+另从 CCPD 的电脑相关棋谱中逐步校验并导入 196 局，保留电脑对局与人机赛分类；101 局原 PGN 未给胜负，不用于胜负监督。详情见[CCPD 导入报告](reports/ccpd-computer-import.json)。这些棋局尚未由 Pikafish 重新分析，因此目前只作为待标注的局面来源。
+
 AI 棋谱来源、纳入规则与 160 局新生成的完整自对弈棋谱见 [数据来源](DATA_SOURCES.md) 和 [数据报告](reports/data-v2.json)。新旧教师文件可以一起训练：
 
 ```sh

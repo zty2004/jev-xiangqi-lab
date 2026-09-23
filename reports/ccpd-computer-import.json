@@ -1,0 +1,109 @@
+{
+  "kind": "import-report",
+  "format": "iccs-game-v1",
+  "source": "Chinese Chess Practical Dataset (CCPD)",
+  "sourceUrl": "https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset",
+  "sourceCommit": "368a47a947773dd8692c026e286dd19b6277b993",
+  "license": "CC BY 4.0",
+  "sourceTreeSha256": "ec09813355b696b7e6d2ffef7aa0c138707159a93c6b95a92b4f93a8ccea6afc",
+  "categories": [
+    "電腦對局競賽",
+    "人機賽"
+  ],
+  "files": 208,
+  "counts": {
+    "電腦對局競賽": {
+      "files": 167,
+      "imported": 155,
+      "failed": 7,
+      "duplicates": 5,
+      "plies": 16623
+    },
+    "人機賽": {
+      "files": 41,
+      "imported": 41,
+      "failed": 0,
+      "duplicates": 0,
+      "plies": 3489
+    }
+  },
+  "importedGames": 196,
+  "importedPlies": 20112,
+  "uniquePositions": 18059,
+  "phasePlies": {
+    "opening": 3136,
+    "middle": 8318,
+    "late": 8658
+  },
+  "comparisonTeacherSha256": [
+    {
+      "file": "data/teacher-openings-5000.jsonl",
+      "sha256": "07389263eed847d86a084380d7283cfd0b4a967684bbcd718536b7fd82517f09"
+    },
+    {
+      "file": "data/teacher-games-160.jsonl",
+      "sha256": "f8752cf60f099002fd23f70a2f6085a7f9a7eefe0e80866ca2927f157d5651d5"
+    }
+  ],
+  "crossTeacherPositionOverlap": 60,
+  "novelPositionsAgainstComparedTeachers": 17999,
+  "resultCounts": {
+    "red": 40,
+    "black": 18,
+    "draw": 37,
+    "censored": 101
+  },
+  "rulesTerminalDisagreements": 0,
+  "duplicates": [
+    {
+      "file": "電腦對局競賽/00000044.pgn",
+      "duplicateOf": "電腦對局競賽/00000043.pgn"
+    },
+    {
+      "file": "電腦對局競賽/00000051.pgn",
+      "duplicateOf": "電腦對局競賽/00000050.pgn"
+    },
+    {
+      "file": "電腦對局競賽/00000094.pgn",
+      "duplicateOf": "電腦對局競賽/00000093.pgn"
+    },
+    {
+      "file": "電腦對局競賽/00000123.pgn",
+      "duplicateOf": "電腦對局競賽/00000093.pgn"
+    },
+    {
+      "file": "電腦對局競賽/00000126.pgn",
+      "duplicateOf": "電腦對局競賽/00000035.pgn"
+    }
+  ],
+  "failures": [
+    {
+      "file": "電腦對局競賽/00000011.pgn",
+      "reason": "帥五進一: matched 0 legal moves"
+    },
+    {
+      "file": "電腦對局競賽/00000019.pgn",
+      "reason": "將５進１: matched 0 legal moves"
+    },
+    {
+      "file": "電腦對局競賽/00000048.pgn",
+      "reason": "將５平４: matched 0 legal moves"
+    },
+    {
+      "file": "電腦對局競賽/00000149.pgn",
+      "reason": "fewer than two legal moves"
+    },
+    {
+      "file": "電腦對局競賽/00000150.pgn",
+      "reason": "fewer than two legal moves"
+    },
+    {
+      "file": "電腦對局競賽/00000151.pgn",
+      "reason": "fewer than two legal moves"
+    },
+    {
+      "file": "電腦對局競賽/00000152.pgn",
+      "reason": "fewer than two legal moves"
+    }
+  ]
+}
