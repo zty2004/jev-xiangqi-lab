@@ -1,0 +1,80 @@
+{
+  "sourceCommit": "79bd1b2",
+  "gpuUsed": "GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+  "otherGpuUntouched": "GPU-0deb82ba-dfbc-cd17-2604-102787bcc390",
+  "training": {
+    "teacherFiles": [
+      "data/teacher-openings-5000.jsonl",
+      "data/teacher-games-160.jsonl"
+    ],
+    "masterOpeningPolicy": "data/master-opening-positions.jsonl",
+    "masterOpeningTrainingSamples": 1500,
+    "epochs": 10,
+    "batch": 128,
+    "channels": 64,
+    "blocks": 4,
+    "seed": 20260923
+  },
+  "models": {
+    "choice-openings-5000.pt": {
+      "sha256": "6e21876c791421f48883ec49b25d1c7b69b5af040cd0647412b211a07e0b68ab",
+      "bestEpoch": 2,
+      "trainingPositions": 5232,
+      "teacherTest": {
+        "count": 2174,
+        "top1": 0.20331186752529898,
+        "nll": 2.8887014963592903
+      }
+    },
+    "choice-no-master-opening-gpu0.pt": {
+      "sha256": "ea5b24471b9ec920df27392572c84f92f79e4361804ad747b72ee09c3b86c0b8",
+      "bestEpoch": 3,
+      "trainingPositions": 14221,
+      "teacherTest": {
+        "count": 2174,
+        "top1": 0.22447102115915363,
+        "nll": 2.7791121514546457,
+        "brier": 0.8809337134797747,
+        "mean_top_probability": 0.2172834170209424,
+        "ece10": 0.0296918106348474
+      }
+    },
+    "choice-master-opening-gpu0.pt": {
+      "sha256": "f5b08899956b3d6a0e5b36f65b7fb495f85d859e67efc95c210e39475c09452b",
+      "bestEpoch": 2,
+      "trainingPositions": 15721,
+      "teacherTest": {
+        "count": 2174,
+        "top1": 0.23551057957681693,
+        "nll": 2.785643053261606,
+        "brier": 0.8802388573636017,
+        "mean_top_probability": 0.22613029644105723,
+        "ece10": 0.03499775196716066
+      }
+    }
+  },
+  "openingHoldout": "reports/compare-master-opening-gpu0.json",
+  "centralCannonResponse": {
+    "masterGames": 4008,
+    "recommendedMove": "b9c7",
+    "recommendedChinese": "马８进７",
+    "models": {
+      "choice-openings-5000.pt": {
+        "topMove": "h9g7",
+        "topProbability": 0.17029568552970886,
+        "screenHorseProbability": 0.09109648317098618
+      },
+      "choice-no-master-opening-gpu0.pt": {
+        "topMove": "b7e7",
+        "topProbability": 0.08778323233127594,
+        "screenHorseProbability": 0.06862413883209229
+      },
+      "choice-master-opening-gpu0.pt": {
+        "topMove": "b9c7",
+        "topProbability": 0.1513105034828186,
+        "screenHorseProbability": 0.1513105034828186
+      }
+    }
+  },
+  "limitations": "Opening holdout measures imitation of master-game frequencies, not move optimality or playing strength. Candidate remains inactive pending paired match evaluation."
+}
