@@ -29,6 +29,8 @@ CHOICE_MODEL=/absolute/path/to/models/choice-openings-5000.pt npm start
 
 将军判断现直接检查将帅是否受到攻击。与上一版相比，三个固定局面的完整 4 层搜索在节点数、评分和首选走法相同的条件下，用时中位数缩短约 2.43–3.37 倍；1 秒限时下，开局和一个中局局面均多完成 1 层搜索。验证范围与原始测量见[搜索优化报告](reports/search-check-optimization.json)。这些速度结果尚不能证明对局胜率提高。
 
+随后缓存了攻击检查所需的棋子符号；相同固定深度下，三个局面又快了约 1.24–1.31 倍，原始测量见[第二次搜索优化报告](reports/search-check-piece-cache.json)。
+
 ## 与 Pikafish 评测
 
 下载 [Pikafish 官方发布包](https://github.com/official-pikafish/Pikafish/releases)，将可执行文件与 `pikafish.nnue` 放在同一目录。运行：

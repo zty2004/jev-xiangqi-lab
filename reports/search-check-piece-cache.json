@@ -1,0 +1,14 @@
+{
+  "date": "2026-09-23",
+  "baselineCommit": "6d153df",
+  "baselineRulesSha256": "6123f138e3cde828cdc451fcdec432b0da5d223fdd61d70bfa1d46cffbc6b87d",
+  "optimizedRulesSha256": "85a442d781d15b7ed47c26904414fb1882db9d51a70c3c99f85d59272370b1b7",
+  "change": "Precompute the opposing piece symbols once per check test instead of uppercasing a symbol through a closure for every attack probe.",
+  "fixedDepthProtocol": "Same Apple M5 and Node v24.18.0, maxDepth=4, time limit 30000ms, four alternating runs in one process; median of four completed-search times",
+  "positions": [
+    { "name": "start", "nodesBoth": 36987, "scoreBoth": 0, "firstMoveBoth": "b0c2", "baselineMs": [285, 234, 231, 230], "optimizedMs": [223, 192, 180, 178], "baselineMedianMs": 232.5, "optimizedMedianMs": 186, "speedup": 1.25 },
+    { "name": "middle", "nodesBoth": 206875, "scoreBoth": -30, "firstMoveBoth": "g6a6", "baselineMs": [1017, 985, 941, 949], "optimizedMs": [801, 819, 754, 758], "baselineMedianMs": 967, "optimizedMedianMs": 779.5, "speedup": 1.2405388069275176 },
+    { "name": "late", "nodesBoth": 17512, "scoreBoth": 243, "firstMoveBoth": "g4c4", "baselineMs": [100, 97, 97, 97], "optimizedMs": [75, 74, 74, 73], "baselineMedianMs": 97, "optimizedMedianMs": 74, "speedup": 1.3108108108108107 }
+  ],
+  "correctness": "12 Node tests pass, including independent perft positions and comparison against the prior capture-generator check detector over 17,827 recorded states."
+}

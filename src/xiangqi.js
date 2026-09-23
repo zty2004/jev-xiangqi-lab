@@ -119,7 +119,9 @@ export function isInCheck(position, side = position.side) {
   const king = board.indexOf(side === 'red' ? 'K' : 'k');
   if (king < 0) return true;
   const enemy = opponent(side), upper = enemy === 'red';
-  const piece = type => upper ? type.toUpperCase() : type;
+  const rook = upper ? 'R' : 'r', cannon = upper ? 'C' : 'c';
+  const general = upper ? 'K' : 'k', pawn = upper ? 'P' : 'p';
+  const horse = upper ? 'N' : 'n', advisor = upper ? 'A' : 'a', elephant = upper ? 'B' : 'b';
   const x = king % 9, y = Math.floor(king / 9);
 
   // Look outward from the king. This avoids generating every enemy capture
@@ -131,27 +133,27 @@ export function isInCheck(position, side = position.side) {
       const attacker = board[at(xx, yy)];
       if (attacker === '.') continue;
       if (!screened) {
-        if (attacker === piece('r') || (attacker === piece('k') &&
+        if (attacker === rook || (attacker === general &&
             (dx === 0 || (distance === 1 && palace(x, y, enemy))))) return true;
         screened = true;
       } else {
-        if (attacker === piece('c')) return true;
+        if (attacker === cannon) return true;
         break;
       }
     }
   }
 
   const pawnY = y + (enemy === 'red' ? 1 : -1);
-  if (inside(x, pawnY) && board[at(x, pawnY)] === piece('p')) return true;
+  if (inside(x, pawnY) && board[at(x, pawnY)] === pawn) return true;
   if (enemy === 'red' ? y <= 4 : y >= 5) {
-    if (inside(x - 1, y) && board[at(x - 1, y)] === piece('p')) return true;
-    if (inside(x + 1, y) && board[at(x + 1, y)] === piece('p')) return true;
+    if (inside(x - 1, y) && board[at(x - 1, y)] === pawn) return true;
+    if (inside(x + 1, y) && board[at(x + 1, y)] === pawn) return true;
   }
 
   for (const [dx, dy] of [[1, 2], [-1, 2], [1, -2], [-1, -2],
                           [2, 1], [2, -1], [-2, 1], [-2, -1]]) {
     const sx = x - dx, sy = y - dy;
-    if (!inside(sx, sy) || board[at(sx, sy)] !== piece('n')) continue;
+    if (!inside(sx, sy) || board[at(sx, sy)] !== horse) continue;
     const legX = sx + (Math.abs(dx) === 2 ? Math.sign(dx) : 0);
     const legY = sy + (Math.abs(dy) === 2 ? Math.sign(dy) : 0);
     if (board[at(legX, legY)] === '.') return true;
@@ -159,11 +161,11 @@ export function isInCheck(position, side = position.side) {
 
   if (palace(x, y, enemy)) {
     for (const dx of [-1, 1]) for (const dy of [-1, 1])
-      if (inside(x + dx, y + dy) && board[at(x + dx, y + dy)] === piece('a')) return true;
+      if (inside(x + dx, y + dy) && board[at(x + dx, y + dy)] === advisor) return true;
   }
   if (enemy === 'red' ? y >= 5 : y <= 4) {
     for (const dx of [-2, 2]) for (const dy of [-2, 2])
-      if (inside(x + dx, y + dy) && board[at(x + dx, y + dy)] === piece('b') &&
+      if (inside(x + dx, y + dy) && board[at(x + dx, y + dy)] === elephant &&
           board[at(x + dx / 2, y + dy / 2)] === '.') return true;
   }
   return false;
