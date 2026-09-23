@@ -87,6 +87,11 @@ class ChoiceModelTests(unittest.TestCase):
             self.assertEqual(len({row["game"] for row in rows}), 8)
             self.assertEqual(len(rows), 8)
 
+    def test_source_sampling_weights_leave_opening_book_and_other_sources_at_one(self):
+        rows = [{"game": "0:1"}, {"game": "1:2"}, {"game": "2:3"},
+                {"game": "opening", "source": "opening-book"}]
+        self.assertEqual(choice_model.source_sample_weights(rows, {2: 4}), [1.0, 1.0, 4, 1.0])
+
     def test_splits_keep_games_and_positions_disjoint(self):
         rows = [{"game": game, "fen": f"unique-{game} w", "legal": ["a0a1"], "best": "a0a1"}
                 for game in range(20)]

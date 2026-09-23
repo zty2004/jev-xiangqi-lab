@@ -10,7 +10,7 @@ from pathlib import Path
 
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 PIECES = "KABNRCPkabnrcp"
 FILES = "abcdefghi"
@@ -270,6 +270,13 @@ def split_rows(rows, seed):
     return training, validation, calibration, test
 
 
+def source_sample_weights(rows, source_weights):
+    """Weights affect training draws only; held-out game splits stay unchanged."""
+    return [1.0 if row.get("source") == "opening-book" else
+            source_weights.get(int(str(row["game"]).split(":", 1)[0]), 1.0)
+            for row in rows]
+
+
 def select_device(name):
     if name != "auto":
         return torch.device(name)
@@ -370,6 +377,16 @@ def fit_temperature(predictions):
 
 def train(args):
     torch.manual_seed(args.seed)
+    source_weights = {}
+    for spec in args.source_weight:
+        try:
+            index_text, weight_text = spec.split(":", 1)
+            index, weight = int(index_text), float(weight_text)
+        except ValueError as error:
+            raise ValueError(f"invalid source weight {spec!r}; expected INDEX:WEIGHT") from error
+        if not 0 <= index < len(args.data) or not math.isfinite(weight) or weight <= 0 or index in source_weights:
+            raise ValueError(f"invalid or duplicate source weight {spec!r}")
+        source_weights[index] = weight
     rows = load_teacher_sources(args.data, args.history_data)
     training, validation, calibration, test = split_rows(rows, args.seed)
     if args.opening_data:
@@ -385,7 +402,10 @@ def train(args):
     input_channels = 46 if args.history_data else 16
     if args.value_head == "wdl" and not args.history_data:
         raise ValueError("WDL training requires game outcome labels")
-    train_loader = DataLoader(TeacherDataset(training, input_channels, args.value_head, args.policy_target), batch_size=args.batch, shuffle=True, collate_fn=collate)
+    sampler = (WeightedRandomSampler(source_sample_weights(training, source_weights), len(training), replacement=True,
+                                     generator=torch.Generator().manual_seed(args.seed)) if source_weights else None)
+    train_loader = DataLoader(TeacherDataset(training, input_channels, args.value_head, args.policy_target),
+                              batch_size=args.batch, shuffle=sampler is None, sampler=sampler, collate_fn=collate)
     validation_loader = DataLoader(TeacherDataset(validation, input_channels, args.value_head, args.policy_target), batch_size=args.batch, collate_fn=collate)
     model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head, args.value_loss_weight).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
@@ -413,6 +433,7 @@ def train(args):
                         "value_loss_weight": args.value_loss_weight, "policy_target": args.policy_target,
                         "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
+                        "source_weights": source_weights,
                         "teacher_sources": [{"file": str(filename), "sha256": sha256_file(filename)} for filename in args.data],
                         "history_sha256": sha256_file(args.history_data) if args.history_data else None,
                         "opening_sha256": sha256_file(args.opening_data) if args.opening_data else None,
@@ -487,6 +508,8 @@ def main():
     train_parser.add_argument("--value-head", choices=["scalar", "wdl"], default="scalar")
     train_parser.add_argument("--value-loss-weight", type=float, default=0.2)
     train_parser.add_argument("--policy-target", choices=["soft", "dominant", "best"], default="soft")
+    train_parser.add_argument("--source-weight", action="append", default=[],
+                              help="training-only sampling weight INDEX:WEIGHT for a --data source; repeatable")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
     train_parser.add_argument("--output", default="choice-model.pt")
     train_parser.add_argument("--epochs", type=int, default=10)
