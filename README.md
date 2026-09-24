@@ -116,6 +116,10 @@ GPU 0 上完成一组同配置对照：候选模型加入其中 1,500 个大师�
 
 首次每步 5 秒实战验证的[原始记录](benchmark-choice-master-opening-5s-interrupted.jsonl)中，候选执红一局在 86 个半回合后被将死；执黑一局在第 17 个半回合后因引擎响应超时而中断。中文棋谱与有效成绩见[重放报告](reports/benchmark-choice-master-opening-interrupted.json)；第二局的运行故障不计为负局，尚不能据此比较模型棋力。
 
+补跑黑方局后，大师开局候选模型的有效红黑成绩为 0 胜 0 和 2 负，对局长度为 86、67 个半回合；当前网页模型在相同引擎、开局库、Pikafish 文件和每步 5 秒下也是 0 胜 0 和 2 负，对局长度为 74、75。两局烟雾测试不足以估计等级分差，候选不晋级。[同条件对照报告](reports/compare-choice-master-opening-matches.json)保存双方模型哈希与共同设置。
+
+另用同一 Pikafish 对候选两局实际走过的前 24 个半回合进行 5 秒 MultiPV 复核：21 个受开局库约束的回合中，15 个与教师首选一致；其余 6 个均排在前五，和首选相差 1–15 cp。详见[红方开局复核](reports/audit-choice-master-opening-red-5s.json)和[黑方开局复核](reports/audit-choice-master-opening-black-5s.json)。因此这两局没有证据表明开局库造成明显劣势；下一步优先改善离开开局后的局面评估和树内模型引导。
+
 重新导入或生成训练局面：
 
 ```sh

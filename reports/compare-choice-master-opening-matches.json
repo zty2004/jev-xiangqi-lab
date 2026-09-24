@@ -1,0 +1,49 @@
+{
+  "purpose": "Same-engine paired smoke comparison against a fixed Pikafish binary",
+  "sharedSettings": {
+    "moveTimeMs": 5000,
+    "maxPlies": 120,
+    "masterOpeningBookHash": "8469e669199a5a4d8bbf152f5198577118c147265e1095e2f58083be21fc123a",
+    "pikafishHash": "3a11f9034ef723bb4068e4cf88a79a12d99507474ba118fa916ec2cecd4f4abe",
+    "engineHash": "6490ca5b4616db19e4fea07ac7bd39b3254a5604e5a435f3082110bed83864f0",
+    "rulesHash": "85a442d781d15b7ed47c26904414fb1882db9d51a70c3c99f85d59272370b1b7"
+  },
+  "models": [
+    {
+      "reports": [
+        "reports/benchmark-choice-current-master-book-5s.json"
+      ],
+      "choiceModelHash": "6e21876c791421f48883ec49b25d1c7b69b5af040cd0647412b211a07e0b68ab",
+      "games": 2,
+      "points": 0,
+      "wins": 0,
+      "draws": 0,
+      "losses": 2,
+      "abortedGamesExcluded": 0,
+      "meanPlies": 74.5,
+      "sides": [
+        "red",
+        "black"
+      ]
+    },
+    {
+      "reports": [
+        "reports/benchmark-choice-master-opening-interrupted.json",
+        "reports/benchmark-choice-master-opening-black-5s.json"
+      ],
+      "choiceModelHash": "f5b08899956b3d6a0e5b36f65b7fb495f85d859e67efc95c210e39475c09452b",
+      "games": 2,
+      "points": 0,
+      "wins": 0,
+      "draws": 0,
+      "losses": 2,
+      "abortedGamesExcluded": 1,
+      "meanPlies": 76.5,
+      "sides": [
+        "red",
+        "black"
+      ]
+    }
+  ],
+  "limitations": "Two games per model only validate the match pipeline and can reject a candidate that loses both games; they cannot estimate a stable Elo difference."
+}

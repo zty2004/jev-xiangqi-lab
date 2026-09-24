@@ -1,0 +1,788 @@
+{
+  "source": "benchmark-choice-master-opening-5s-interrupted.jsonl",
+  "sourceSha256": "9325ce15e527f8a9a6db55ff6f0d2ad6b599584c3bf31c7849c642e15ff95a0c",
+  "game": 1,
+  "engineSide": "red",
+  "moveTimeMs": 5000,
+  "teacherBinarySha256": "3a11f9034ef723bb4068e4cf88a79a12d99507474ba118fa916ec2cecd4f4abe",
+  "bookSha256": "8469e669199a5a4d8bbf152f5198577118c147265e1095e2f58083be21fc123a",
+  "positions": [
+    {
+      "ply": 1,
+      "fen": "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1",
+      "played": "b2e2",
+      "playedChinese": "炮二平五",
+      "bookCandidates": [
+        {
+          "move": "b2e2",
+          "chinese": "炮二平五",
+          "masterGames": 4008,
+          "screenHorseGames": 3085
+        }
+      ],
+      "teacherBest": "c3c4",
+      "teacherBestChinese": "兵三进一",
+      "teacherDepth": 19,
+      "selectedRank": 4,
+      "scoreGapCp": 8,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "c3c4",
+          "score": 28,
+          "scoreType": "cp",
+          "chinese": "兵三进一"
+        },
+        {
+          "rank": 2,
+          "move": "h2e2",
+          "score": 25,
+          "scoreType": "cp",
+          "chinese": "炮八平五"
+        },
+        {
+          "rank": 3,
+          "move": "g3g4",
+          "score": 25,
+          "scoreType": "cp",
+          "chinese": "兵七进一"
+        },
+        {
+          "rank": 4,
+          "move": "b2e2",
+          "score": 20,
+          "scoreType": "cp",
+          "chinese": "炮二平五"
+        },
+        {
+          "rank": 5,
+          "move": "g0e2",
+          "score": 15,
+          "scoreType": "cp",
+          "chinese": "相七进五"
+        },
+        {
+          "rank": 6,
+          "move": "c0e2",
+          "score": 13,
+          "scoreType": "cp",
+          "chinese": "相三进五"
+        },
+        {
+          "rank": 7,
+          "move": "b0c2",
+          "score": 13,
+          "scoreType": "cp",
+          "chinese": "马二进三"
+        },
+        {
+          "rank": 8,
+          "move": "h2d2",
+          "score": 10,
+          "scoreType": "cp",
+          "chinese": "炮八平四"
+        }
+      ]
+    },
+    {
+      "ply": 3,
+      "fen": "r1bakabnr/9/1cn4c1/p1p1p1p1p/9/9/P1P1P1P1P/4C2C1/9/RNBAKABNR w - - 2 2",
+      "played": "b0c2",
+      "playedChinese": "马二进三",
+      "bookCandidates": [
+        {
+          "move": "b0c2",
+          "chinese": "马二进三",
+          "masterGames": 2608,
+          "screenHorseGames": 2603
+        }
+      ],
+      "teacherBest": "c3c4",
+      "teacherBestChinese": "兵三进一",
+      "teacherDepth": 19,
+      "selectedRank": 2,
+      "scoreGapCp": 1,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "c3c4",
+          "score": 26,
+          "scoreType": "cp",
+          "chinese": "兵三进一"
+        },
+        {
+          "rank": 2,
+          "move": "b0c2",
+          "score": 25,
+          "scoreType": "cp",
+          "chinese": "马二进三"
+        },
+        {
+          "rank": 3,
+          "move": "g3g4",
+          "score": 22,
+          "scoreType": "cp",
+          "chinese": "兵七进一"
+        },
+        {
+          "rank": 4,
+          "move": "h0g2",
+          "score": 11,
+          "scoreType": "cp",
+          "chinese": "马八进七"
+        },
+        {
+          "rank": 5,
+          "move": "h2f2",
+          "score": 8,
+          "scoreType": "cp",
+          "chinese": "炮八平六"
+        },
+        {
+          "rank": 6,
+          "move": "h0i2",
+          "score": 8,
+          "scoreType": "cp",
+          "chinese": "马八进九"
+        },
+        {
+          "rank": 7,
+          "move": "a0a1",
+          "score": -1,
+          "scoreType": "cp",
+          "chinese": "车一进一"
+        },
+        {
+          "rank": 8,
+          "move": "h2i2",
+          "score": -3,
+          "scoreType": "cp",
+          "chinese": "炮八平九"
+        }
+      ]
+    },
+    {
+      "ply": 5,
+      "fen": "1rbakabnr/9/1cn4c1/p1p1p1p1p/9/9/P1P1P1P1P/2N1C2C1/9/R1BAKABNR w - - 4 3",
+      "played": "a0b0",
+      "playedChinese": "车一平二",
+      "bookCandidates": [
+        {
+          "move": "a0b0",
+          "chinese": "车一平二",
+          "masterGames": 1998,
+          "screenHorseGames": 1997
+        }
+      ],
+      "teacherBest": "c3c4",
+      "teacherBestChinese": "兵三进一",
+      "teacherDepth": 19,
+      "selectedRank": 3,
+      "scoreGapCp": 5,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "c3c4",
+          "score": 24,
+          "scoreType": "cp",
+          "chinese": "兵三进一"
+        },
+        {
+          "rank": 2,
+          "move": "g3g4",
+          "score": 19,
+          "scoreType": "cp",
+          "chinese": "兵七进一"
+        },
+        {
+          "rank": 3,
+          "move": "a0b0",
+          "score": 19,
+          "scoreType": "cp",
+          "chinese": "车一平二"
+        },
+        {
+          "rank": 4,
+          "move": "h2f2",
+          "score": 15,
+          "scoreType": "cp",
+          "chinese": "炮八平六"
+        },
+        {
+          "rank": 5,
+          "move": "h0g2",
+          "score": 11,
+          "scoreType": "cp",
+          "chinese": "马八进七"
+        },
+        {
+          "rank": 6,
+          "move": "h0i2",
+          "score": 11,
+          "scoreType": "cp",
+          "chinese": "马八进九"
+        },
+        {
+          "rank": 7,
+          "move": "a0a1",
+          "score": -3,
+          "scoreType": "cp",
+          "chinese": "车一进一"
+        },
+        {
+          "rank": 8,
+          "move": "h2i2",
+          "score": -5,
+          "scoreType": "cp",
+          "chinese": "炮八平九"
+        }
+      ]
+    },
+    {
+      "ply": 7,
+      "fen": "1rbakabnr/9/1cn4c1/p3p1p1p/2p6/9/P1P1P1P1P/2N1C2C1/9/1RBAKABNR w - - 0 4",
+      "played": "b0b6",
+      "playedChinese": "车二进六",
+      "bookCandidates": [
+        {
+          "move": "b0b6",
+          "chinese": "车二进六",
+          "masterGames": 718,
+          "screenHorseGames": 718
+        }
+      ],
+      "teacherBest": "b0b6",
+      "teacherBestChinese": "车二进六",
+      "teacherDepth": 18,
+      "selectedRank": 1,
+      "scoreGapCp": 0,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "b0b6",
+          "score": 17,
+          "scoreType": "cp",
+          "chinese": "车二进六"
+        },
+        {
+          "rank": 2,
+          "move": "g3g4",
+          "score": 15,
+          "scoreType": "cp",
+          "chinese": "兵七进一"
+        },
+        {
+          "rank": 3,
+          "move": "h0g2",
+          "score": 14,
+          "scoreType": "cp",
+          "chinese": "马八进七"
+        },
+        {
+          "rank": 4,
+          "move": "h2f2",
+          "score": 6,
+          "scoreType": "cp",
+          "chinese": "炮八平六"
+        },
+        {
+          "rank": 5,
+          "move": "h2i2",
+          "score": 4,
+          "scoreType": "cp",
+          "chinese": "炮八平九"
+        },
+        {
+          "rank": 6,
+          "move": "b0b4",
+          "score": -10,
+          "scoreType": "cp",
+          "chinese": "车二进四"
+        },
+        {
+          "rank": 7,
+          "move": "h0i2",
+          "score": -10,
+          "scoreType": "cp",
+          "chinese": "马八进九"
+        },
+        {
+          "rank": 8,
+          "move": "h2g2",
+          "score": -13,
+          "scoreType": "cp",
+          "chinese": "炮八平七"
+        }
+      ]
+    },
+    {
+      "ply": 9,
+      "fen": "1rbakab1r/9/1cn3nc1/pR2p1p1p/2p6/9/P1P1P1P1P/2N1C2C1/9/2BAKABNR w - - 2 5",
+      "played": "h0g2",
+      "playedChinese": "马八进七",
+      "bookCandidates": [
+        {
+          "move": "h0g2",
+          "chinese": "马八进七",
+          "masterGames": 465,
+          "screenHorseGames": 465
+        },
+        {
+          "move": "g3g4",
+          "chinese": "兵七进一",
+          "masterGames": 170,
+          "screenHorseGames": 170
+        }
+      ],
+      "teacherBest": "e3e4",
+      "teacherBestChinese": "兵五进一",
+      "teacherDepth": 18,
+      "selectedRank": 2,
+      "scoreGapCp": 3,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "e3e4",
+          "score": 19,
+          "scoreType": "cp",
+          "chinese": "兵五进一"
+        },
+        {
+          "rank": 2,
+          "move": "h0g2",
+          "score": 16,
+          "scoreType": "cp",
+          "chinese": "马八进七"
+        },
+        {
+          "rank": 3,
+          "move": "g3g4",
+          "score": 15,
+          "scoreType": "cp",
+          "chinese": "兵七进一"
+        },
+        {
+          "rank": 4,
+          "move": "h2f2",
+          "score": 13,
+          "scoreType": "cp",
+          "chinese": "炮八平六"
+        },
+        {
+          "rank": 5,
+          "move": "h0i2",
+          "score": -8,
+          "scoreType": "cp",
+          "chinese": "马八进九"
+        },
+        {
+          "rank": 6,
+          "move": "h2i2",
+          "score": -20,
+          "scoreType": "cp",
+          "chinese": "炮八平九"
+        },
+        {
+          "rank": 7,
+          "move": "i3i4",
+          "score": -24,
+          "scoreType": "cp",
+          "chinese": "兵九进一"
+        },
+        {
+          "rank": 8,
+          "move": "h2g2",
+          "score": -28,
+          "scoreType": "cp",
+          "chinese": "炮八平七"
+        }
+      ]
+    },
+    {
+      "ply": 11,
+      "fen": "1rbakab1r/9/1cn3nc1/pR2p3p/2p3p2/9/P1P1P1P1P/2N1C1NC1/9/2BAKAB1R w - - 0 6",
+      "played": "i0i1",
+      "playedChinese": "车九进一",
+      "bookCandidates": [
+        {
+          "move": "i0i1",
+          "chinese": "车九进一",
+          "masterGames": 468,
+          "screenHorseGames": 468
+        }
+      ],
+      "teacherBest": "i0i1",
+      "teacherBestChinese": "车九进一",
+      "teacherDepth": 16,
+      "selectedRank": 1,
+      "scoreGapCp": 0,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "i0i1",
+          "score": 14,
+          "scoreType": "cp",
+          "chinese": "车九进一"
+        },
+        {
+          "rank": 2,
+          "move": "e3e4",
+          "score": 14,
+          "scoreType": "cp",
+          "chinese": "兵五进一"
+        },
+        {
+          "rank": 3,
+          "move": "h2i2",
+          "score": 0,
+          "scoreType": "cp",
+          "chinese": "炮八平九"
+        },
+        {
+          "rank": 4,
+          "move": "h2h1",
+          "score": -10,
+          "scoreType": "cp",
+          "chinese": "炮八退一"
+        },
+        {
+          "rank": 5,
+          "move": "f0e1",
+          "score": -19,
+          "scoreType": "cp",
+          "chinese": "仕六进五"
+        },
+        {
+          "rank": 6,
+          "move": "i3i4",
+          "score": -25,
+          "scoreType": "cp",
+          "chinese": "兵九进一"
+        },
+        {
+          "rank": 7,
+          "move": "b6c6",
+          "score": -32,
+          "scoreType": "cp",
+          "chinese": "车二平三"
+        },
+        {
+          "rank": 8,
+          "move": "b6b4",
+          "score": -36,
+          "scoreType": "cp",
+          "chinese": "车二退二"
+        }
+      ]
+    },
+    {
+      "ply": 13,
+      "fen": "1rbak1b1r/4a4/1cn3nc1/pR2p3p/2p3p2/9/P1P1P1P1P/2N1C1NC1/8R/2BAKAB2 w - - 2 7",
+      "played": "i1f1",
+      "playedChinese": "车九平六",
+      "bookCandidates": [
+        {
+          "move": "i1f1",
+          "chinese": "车九平六",
+          "masterGames": 47,
+          "screenHorseGames": 47
+        }
+      ],
+      "teacherBest": "i1f1",
+      "teacherBestChinese": "车九平六",
+      "teacherDepth": 18,
+      "selectedRank": 1,
+      "scoreGapCp": 0,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "i1f1",
+          "score": 10,
+          "scoreType": "cp",
+          "chinese": "车九平六"
+        },
+        {
+          "rank": 2,
+          "move": "e3e4",
+          "score": 8,
+          "scoreType": "cp",
+          "chinese": "兵五进一"
+        },
+        {
+          "rank": 3,
+          "move": "h2i2",
+          "score": -34,
+          "scoreType": "cp",
+          "chinese": "炮八平九"
+        },
+        {
+          "rank": 4,
+          "move": "c3c4",
+          "score": -36,
+          "scoreType": "cp",
+          "chinese": "兵三进一"
+        },
+        {
+          "rank": 5,
+          "move": "b6b4",
+          "score": -36,
+          "scoreType": "cp",
+          "chinese": "车二退二"
+        },
+        {
+          "rank": 6,
+          "move": "b6c6",
+          "score": -37,
+          "scoreType": "cp",
+          "chinese": "车二平三"
+        },
+        {
+          "rank": 7,
+          "move": "h2h1",
+          "score": -53,
+          "scoreType": "cp",
+          "chinese": "炮八退一"
+        },
+        {
+          "rank": 8,
+          "move": "a3a4",
+          "score": -53,
+          "scoreType": "cp",
+          "chinese": "兵一进一"
+        }
+      ]
+    },
+    {
+      "ply": 15,
+      "fen": "1rbak1b1r/4a4/1c4nc1/pR2p3p/2pn2p2/9/P1P1P1P1P/2N1C1NC1/5R3/2BAKAB2 w - - 4 8",
+      "played": "e3e4",
+      "playedChinese": "兵五进一",
+      "bookCandidates": [
+        {
+          "move": "e3e4",
+          "chinese": "兵五进一",
+          "masterGames": 25,
+          "screenHorseGames": 25
+        }
+      ],
+      "teacherBest": "e3e4",
+      "teacherBestChinese": "兵五进一",
+      "teacherDepth": 17,
+      "selectedRank": 1,
+      "scoreGapCp": 0,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "e3e4",
+          "score": 11,
+          "scoreType": "cp",
+          "chinese": "兵五进一"
+        },
+        {
+          "rank": 2,
+          "move": "b6d6",
+          "score": -2,
+          "scoreType": "cp",
+          "chinese": "车二平四"
+        },
+        {
+          "rank": 3,
+          "move": "b6b4",
+          "score": -3,
+          "scoreType": "cp",
+          "chinese": "车二退二"
+        },
+        {
+          "rank": 4,
+          "move": "f1f8",
+          "score": -16,
+          "scoreType": "cp",
+          "chinese": "车六进七"
+        },
+        {
+          "rank": 5,
+          "move": "b6b5",
+          "score": -20,
+          "scoreType": "cp",
+          "chinese": "车二退一"
+        },
+        {
+          "rank": 6,
+          "move": "c2e1",
+          "score": -25,
+          "scoreType": "cp",
+          "chinese": "马三退五"
+        },
+        {
+          "rank": 7,
+          "move": "g3g4",
+          "score": -28,
+          "scoreType": "cp",
+          "chinese": "兵七进一"
+        },
+        {
+          "rank": 8,
+          "move": "g2e1",
+          "score": -48,
+          "scoreType": "cp",
+          "chinese": "马七退五"
+        }
+      ]
+    },
+    {
+      "ply": 17,
+      "fen": "1rbak1b1r/4a4/1c4nc1/pR2p3p/3n2p2/2p1P4/P1P3P1P/2N1C1NC1/5R3/2BAKAB2 w - - 0 9",
+      "played": "b6d6",
+      "playedChinese": "车二平四",
+      "bookCandidates": [
+        {
+          "move": "b6d6",
+          "chinese": "车二平四",
+          "masterGames": 20,
+          "screenHorseGames": 20
+        }
+      ],
+      "teacherBest": "b6d6",
+      "teacherBestChinese": "车二平四",
+      "teacherDepth": 18,
+      "selectedRank": 1,
+      "scoreGapCp": 0,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "b6d6",
+          "score": 8,
+          "scoreType": "cp",
+          "chinese": "车二平四"
+        },
+        {
+          "rank": 2,
+          "move": "b6b5",
+          "score": 6,
+          "scoreType": "cp",
+          "chinese": "车二退一"
+        },
+        {
+          "rank": 3,
+          "move": "b6c6",
+          "score": -90,
+          "scoreType": "cp",
+          "chinese": "车二平三"
+        },
+        {
+          "rank": 4,
+          "move": "b6a6",
+          "score": -95,
+          "scoreType": "cp",
+          "chinese": "车二平一"
+        },
+        {
+          "rank": 5,
+          "move": "e2e6",
+          "score": -153,
+          "scoreType": "cp",
+          "chinese": "炮五进四"
+        },
+        {
+          "rank": 6,
+          "move": "b6b1",
+          "score": -174,
+          "scoreType": "cp",
+          "chinese": "车二退五"
+        },
+        {
+          "rank": 7,
+          "move": "b6b0",
+          "score": -424,
+          "scoreType": "cp",
+          "chinese": "车二退六"
+        },
+        {
+          "rank": 8,
+          "move": "b6b2",
+          "score": -441,
+          "scoreType": "cp",
+          "chinese": "车二退四"
+        }
+      ]
+    },
+    {
+      "ply": 19,
+      "fen": "1rbak1b1r/4a4/1c4nc1/p2Rp3p/6p2/2p1P4/P1n3P1P/2N1C1NC1/5R3/2BAKAB2 w - - 0 10",
+      "played": "c2e3",
+      "playedChinese": "马三进五",
+      "bookCandidates": [
+        {
+          "move": "c2e3",
+          "chinese": "马三进五",
+          "masterGames": 11,
+          "screenHorseGames": 11
+        }
+      ],
+      "teacherBest": "c2e3",
+      "teacherBestChinese": "马三进五",
+      "teacherDepth": 18,
+      "selectedRank": 1,
+      "scoreGapCp": 0,
+      "teacherCandidates": [
+        {
+          "rank": 1,
+          "move": "c2e3",
+          "score": 11,
+          "scoreType": "cp",
+          "chinese": "马三进五"
+        },
+        {
+          "rank": 2,
+          "move": "d6b6",
+          "score": 7,
+          "scoreType": "cp",
+          "chinese": "车四平二"
+        },
+        {
+          "rank": 3,
+          "move": "d6c6",
+          "score": 0,
+          "scoreType": "cp",
+          "chinese": "车四平三"
+        },
+        {
+          "rank": 4,
+          "move": "e4e5",
+          "score": -2,
+          "scoreType": "cp",
+          "chinese": "兵五进一"
+        },
+        {
+          "rank": 5,
+          "move": "f1f4",
+          "score": -37,
+          "scoreType": "cp",
+          "chinese": "车六进三"
+        },
+        {
+          "rank": 6,
+          "move": "g2e3",
+          "score": -38,
+          "scoreType": "cp",
+          "chinese": "马七进五"
+        },
+        {
+          "rank": 7,
+          "move": "g3g4",
+          "score": -39,
+          "scoreType": "cp",
+          "chinese": "兵七进一"
+        },
+        {
+          "rank": 8,
+          "move": "f0e1",
+          "score": -69,
+          "scoreType": "cp",
+          "chinese": "仕六进五"
+        }
+      ]
+    }
+  ],
+  "limitations": "Finite-time MultiPV evaluations diagnose candidate book moves; they do not prove the best opening or playing strength."
+}

@@ -1,0 +1,196 @@
+{
+  "source": "benchmark-choice-master-opening-black-5s.jsonl",
+  "sourceSha256": "2bc669733dddc7853252ebdd9bb047c915c3c7743406924b6fa6128b9042ee85",
+  "settings": {
+    "moveTime": 5000,
+    "gameCount": 2,
+    "startGame": 1,
+    "maxPlies": 120,
+    "openings": [
+      [],
+      [
+        "b2e2",
+        "b7e7"
+      ],
+      [
+        "h2e2",
+        "h7e7"
+      ],
+      [
+        "b0c2",
+        "b9c7"
+      ],
+      [
+        "h0g2",
+        "h9g7"
+      ]
+    ],
+    "nodeVersion": "v24.18.0",
+    "openingBookHash": null,
+    "masterOpeningBookHash": "8469e669199a5a4d8bbf152f5198577118c147265e1095e2f58083be21fc123a",
+    "openingPlies": null,
+    "baselineName": "Jev Xiangqi Lab local choice",
+    "pikafishName": "Pikafish 2026-09-06",
+    "baselineHash": "6490ca5b4616db19e4fea07ac7bd39b3254a5604e5a435f3082110bed83864f0",
+    "uciHash": "d955142411a4fb7133deac5e97722c3a2fd5a81de6e502f3250c86075ca8a325",
+    "benchmarkHarnessHash": "aac93767e72a3cc249c7fef3549e264e5f849bdd32529cc2dd284d31c5ff5882",
+    "rulesHash": "85a442d781d15b7ed47c26904414fb1882db9d51a70c3c99f85d59272370b1b7",
+    "choiceModelHash": "f5b08899956b3d6a0e5b36f65b7fb495f85d859e67efc95c210e39475c09452b",
+    "choiceCodeHash": "bbacfb8a46bf7ecc5a8b73e87c8e9e92bdab7cdb26fc2f8a6adff24e8e5022c4",
+    "choiceAdapterHash": "eae638d32a4067948bcccf3a6b4a8494ea7d82ca66c4b10f8f6e1d554d63c57d",
+    "pikafishHash": "3a11f9034ef723bb4068e4cf88a79a12d99507474ba118fa916ec2cecd4f4abe"
+  },
+  "completedGames": 1,
+  "abortedGames": [],
+  "enginePoints": 0,
+  "games": [
+    {
+      "game": 2,
+      "engineSide": "black",
+      "result": {
+        "winner": "red",
+        "reason": "将死"
+      },
+      "engineScore": 0,
+      "plies": 67,
+      "openingChinese": [],
+      "movesChinese": [
+        "炮二平五",
+        "马８进７",
+        "兵三进一",
+        "卒３进１",
+        "马二进三",
+        "马２进３",
+        "车一平二",
+        "车９平８",
+        "马八进九",
+        "卒１进１",
+        "炮八平七",
+        "马３进２",
+        "车九进一",
+        "象７进５",
+        "马三进四",
+        "卒１进１",
+        "兵九进一",
+        "车１进５",
+        "马四进五",
+        "马７进５",
+        "炮五进四",
+        "士６进５",
+        "兵七进一",
+        "车１平３",
+        "炮七退一",
+        "卒９进１",
+        "炮五退一",
+        "炮２平１",
+        "相三进五",
+        "炮１进６",
+        "相五进七",
+        "马２进１",
+        "前相退五",
+        "将５平６",
+        "车二进五",
+        "炮１平２",
+        "车二平四",
+        "炮８平６",
+        "炮七平四",
+        "将６平５",
+        "车四进二",
+        "炮２退４",
+        "炮五进一",
+        "马１进３",
+        "马九进七",
+        "炮２进２",
+        "马七进五",
+        "炮２平９",
+        "马五进六",
+        "炮９进３",
+        "仕四进五",
+        "车８进９",
+        "炮四退一",
+        "车８退５",
+        "炮四进五",
+        "车８进５",
+        "炮四退五",
+        "车８退５",
+        "炮四进五",
+        "炮９平４",
+        "仕五退六",
+        "车８进５",
+        "炮四退五",
+        "车８平６",
+        "帅五平四",
+        "马３进４",
+        "马六进七"
+      ],
+      "bookDecisions": [
+        {
+          "ply": 2,
+          "selected": "马８进７",
+          "withinBook": true,
+          "candidateCount": 1
+        },
+        {
+          "ply": 4,
+          "selected": "卒３进１",
+          "withinBook": true,
+          "candidateCount": 2
+        },
+        {
+          "ply": 6,
+          "selected": "马２进３",
+          "withinBook": true,
+          "candidateCount": 2
+        },
+        {
+          "ply": 8,
+          "selected": "车９平８",
+          "withinBook": true,
+          "candidateCount": 1
+        },
+        {
+          "ply": 10,
+          "selected": "卒１进１",
+          "withinBook": true,
+          "candidateCount": 1
+        },
+        {
+          "ply": 12,
+          "selected": "马３进２",
+          "withinBook": true,
+          "candidateCount": 1
+        },
+        {
+          "ply": 14,
+          "selected": "象７进５",
+          "withinBook": true,
+          "candidateCount": 3
+        },
+        {
+          "ply": 16,
+          "selected": "卒１进１",
+          "withinBook": true,
+          "candidateCount": 1
+        },
+        {
+          "ply": 18,
+          "selected": "车１进５",
+          "withinBook": true,
+          "candidateCount": 1
+        },
+        {
+          "ply": 20,
+          "selected": "马７进５",
+          "withinBook": true,
+          "candidateCount": 1
+        },
+        {
+          "ply": 22,
+          "selected": "士６进５",
+          "withinBook": true,
+          "candidateCount": 1
+        }
+      ]
+    }
+  ]
+}
