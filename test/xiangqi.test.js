@@ -72,8 +72,17 @@ test('search phase separates opening, middlegame, and low-material endgame', () 
   assert.equal(gamePhase(opening), 'opening');
   assert.equal(gamePhase(middlegame), 'middlegame');
   assert.equal(gamePhase(endgame), 'endgame');
+  assert.equal(searchProfile(middlegame).defaultMaxDepth, 48);
   assert.ok(searchProfile(endgame).defaultMaxDepth > searchProfile(middlegame).defaultMaxDepth);
   assert.ok(searchProfile(endgame).neuralWeight < searchProfile(middlegame).neuralWeight);
+});
+
+test('middlegame search prunes or reduces only after move ordering has established alternatives', () => {
+  const position = parseFen('rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 20');
+  const result = chooseMove(position, { timeMs: 5000, maxDepth: 5 });
+  assert.equal(result.depth, 5);
+  assert.ok(result.pruned > 0);
+  assert.ok(result.reduced > 0);
 });
 
 test('search evaluates tree leaves through the configured incremental evaluator', () => {

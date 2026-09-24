@@ -58,12 +58,13 @@ io.on('line', async line => {
         const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
         const bookMoves = masterOpeningCandidates(position, masterBook);
         const result = chooseMove(position, { timeMs: Math.max(10, requestedMs - (performance.now() - started)),
-          maxDepth: depthIndex >= 0 ? Number(tokens[depthIndex + 1]) : 12, history: history.slice(0, -1), priors,
+          maxDepth: depthIndex >= 0 ? Number(tokens[depthIndex + 1]) : undefined, history: history.slice(0, -1), priors,
           allowedRootMoves: bookMoves.length ? bookMoves.map(item => item.move) : null, evaluator });
         const selected = result.move ? moveName(result.move) : '0000';
         if (bookMoves.length) console.log(`info string master opening book ${bookMoves.length} candidate moves, ${bookMoves.find(item => item.move === selected)?.masterGames || 0} master games`);
         console.log(`info string phase ${result.phase}`);
         if (ranking) console.log(`info string local choice ranked ${ranking.choices.length} legal moves, selected ${selected} probability ${(priors.get(selected) || 0).toFixed(4)}`);
+        console.log(`info string search pruned ${result.pruned} reduced ${result.reduced}`);
         console.log(`info depth ${result.depth} score cp ${result.score} nodes ${result.nodes} time ${result.timeMs} pv ${result.pv.join(' ')}`);
         console.log(`bestmove ${selected}`);
       }

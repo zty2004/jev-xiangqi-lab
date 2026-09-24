@@ -22,8 +22,8 @@ export function gamePhase(position) {
 export function searchProfile(position) {
   const phase = gamePhase(position);
   if (phase === 'opening') return { phase, defaultMaxDepth: 10, quiescencePly: 16, neuralWeight: 0.35 };
-  if (phase === 'endgame') return { phase, defaultMaxDepth: 24, quiescencePly: 48, neuralWeight: 0.2 };
-  return { phase, defaultMaxDepth: 14, quiescencePly: 28, neuralWeight: 1 };
+  if (phase === 'endgame') return { phase, defaultMaxDepth: 64, quiescencePly: 48, neuralWeight: 0.2 };
+  return { phase, defaultMaxDepth: 48, quiescencePly: 28, neuralWeight: 1 };
 }
 
 export function evaluate(position) {
@@ -47,7 +47,7 @@ class Stopped extends Error {}
 export function chooseMove(position, options = {}) {
   const timeMs = Math.max(10, Number(options.timeMs) || 1000);
   const profile = searchProfile(position);
-  const maxDepth = Math.max(1, Math.min(32, Number(options.maxDepth) || profile.defaultMaxDepth));
+  const maxDepth = Math.max(1, Math.min(64, Number(options.maxDepth) || profile.defaultMaxDepth));
   const start = performance.now(), deadline = start + timeMs;
   const table = new Map(), history = new Map(), killers = Array.from({ length: 64 }, () => []);
   const legalRootMoves = legalMoves(position);
@@ -72,7 +72,7 @@ export function chooseMove(position, options = {}) {
   const fullRootScores = Boolean(options.fullRootScores);
   if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [], phase: profile.phase };
   const multiPv = fullRootScores ? rootMoves.length : Math.max(1, Math.min(rootMoves.length, Number(options.multiPv) || 1));
-  let nodes = 0, completed = { move: rootMoves[0], depth: 0, score: staticEvaluate(position, rootEvalState), pv: [moveName(rootMoves[0])], candidates: rootMoves.map(move => {
+  let nodes = 0, pruned = 0, reduced = 0, completed = { move: rootMoves[0], depth: 0, score: staticEvaluate(position, rootEvalState), pv: [moveName(rootMoves[0])], candidates: rootMoves.map(move => {
     const [next, state] = advance(position, move, rootEvalState);
     return { move: moveName(move), score: -staticEvaluate(next, state) };
   }).sort((a, b) => b.score - a.score).slice(0, 8) };
@@ -131,11 +131,31 @@ export function chooseMove(position, options = {}) {
     const moves = legalMoves(pos);
     if (!moves.length) return -MATE + ply;
     let best = -INF, bestMove = null;
+    const checked = isInCheck(pos);
+    const middlegamePruning = profile.phase === 'middlegame' && !checked;
+    let stand = null;
     repetition.push(key);
     try {
-      for (const move of ordered(moves, entry?.move, ply)) {
+      const sorted = ordered(moves, entry?.move, ply);
+      for (let moveIndex = 0; moveIndex < sorted.length; moveIndex++) {
+        const move = sorted[moveIndex];
         const [next, nextState] = advance(pos, move, evalState);
-        const score = -negamax(next, depth - 1, -beta, -alpha, ply + 1, nextState);
+        const tactical = move.captured !== '.' || isInCheck(next);
+        if (middlegamePruning && depth <= 2 && moveIndex >= 8 && !tactical) {
+          stand ??= staticEvaluate(pos, evalState);
+          if (stand + 140 * depth <= alpha) {
+            pruned++;
+            continue;
+          }
+        }
+        let score;
+        const canReduce = middlegamePruning && depth >= 4 && moveIndex >= 4 && !tactical;
+        if (canReduce) {
+          const reduction = depth >= 6 && moveIndex >= 10 ? 2 : 1;
+          reduced++;
+          score = -negamax(next, depth - 1 - reduction, -alpha - 1, -alpha, ply + 1, nextState);
+          if (score > alpha) score = -negamax(next, depth - 1, -beta, -alpha, ply + 1, nextState);
+        } else score = -negamax(next, depth - 1, -beta, -alpha, ply + 1, nextState);
         if (score > best) { best = score; bestMove = moveName(move); }
         if (score > alpha) alpha = score;
         if (alpha >= beta) {
@@ -197,5 +217,5 @@ export function chooseMove(position, options = {}) {
     }
     if (performance.now() >= deadline) break;
   }
-  return { ...completed, nodes, timeMs: Math.round(performance.now() - start), phase: profile.phase };
+  return { ...completed, nodes, pruned, reduced, timeMs: Math.round(performance.now() - start), phase: profile.phase };
 }

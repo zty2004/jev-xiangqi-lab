@@ -90,7 +90,8 @@ const server = http.createServer(async (request, response) => {
         sourceExamples: bookEntry.sourceExamples } : null;
       const next = makeMove(position, chosen), nextHistory = [...history, positionKey(next)];
       json(response, 200, { ...view(next, nextHistory), move: selectedNotation, moveChinese,
-        analysis: { phase: analysis.phase, depth: analysis.depth, score: analysis.score, nodes: analysis.nodes, timeMs: analysis.timeMs,
+        analysis: { phase: analysis.phase, depth: analysis.depth, score: analysis.score, nodes: analysis.nodes,
+          pruned: analysis.pruned, reduced: analysis.reduced, timeMs: analysis.timeMs,
           pv: analysis.pv, pvChinese: formatChineseLine(position, analysis.pv), choice, opening }, history: nextHistory });
     } else if (request.method === 'POST' && url.pathname === '/api/analyze') {
       const data = await body(request), position = parseFen(data.fen), history = data.history || [];
@@ -102,7 +103,8 @@ const server = http.createServer(async (request, response) => {
         move: item.move, notation: formatChineseMove(position, item.move), score: item.score,
         pv: item.pv || [item.move], pvNotation: formatChineseLine(position, item.pv || [item.move]),
         ...(priors ? { probability: priors.get(item.move) || 0 } : {}) })),
-        phase: analysis.phase, depth: analysis.depth, nodes: analysis.nodes, timeMs: analysis.timeMs });
+        phase: analysis.phase, depth: analysis.depth, nodes: analysis.nodes,
+        pruned: analysis.pruned, reduced: analysis.reduced, timeMs: analysis.timeMs });
     } else json(response, 404, { error: 'Not found' });
   } catch (error) {
     json(response, 400, { error: error.message });
