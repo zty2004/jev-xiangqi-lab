@@ -28,3 +28,26 @@ CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 -u "${common[@]}" \
 CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 -u "${common[@]}" \
   --channels 64 --blocks 4 --lr 0.001 --mirror-augmentation \
   --output models/choice-master-dominant-mirror-64x4-gpu0.pt
+
+for model in \
+  choice-master-opening-gpu0 \
+  choice-master-dominant-64x4-gpu0 \
+  choice-master-dominant-mirror-64x4-gpu0
+do
+  CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \
+    --model "models/${model}.pt" \
+    --data data/teacher-openings-5000.jsonl \
+    --data data/teacher-games-160.jsonl \
+    --device cuda > "reports/${model}-teacher-test.json"
+done
+
+CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/compare_master_openings.py \
+  --teacher data/teacher-openings-5000.jsonl \
+  --teacher data/teacher-games-160.jsonl \
+  --book data/master-opening-positions.jsonl \
+  --model models/choice-master-opening-gpu0.pt \
+  --model models/choice-master-dominant-64x4-gpu0.pt \
+  --model models/choice-master-dominant-mirror-64x4-gpu0.pt \
+  --exclude data/opening-positions.jsonl \
+  --opening-samples 1500 --device cuda \
+  --output reports/compare-master-round2-gpu0.json
