@@ -32,10 +32,24 @@ export function chooseMove(position, options = {}) {
   const restricted = allowedRootMoves ? legalRootMoves.filter(move => allowedRootMoves.has(moveName(move))) : [];
   const rootMoves = restricted.length ? restricted : legalRootMoves;
   const priors = options.priors || null;
+  const evaluator = options.evaluator || null;
+  const rootEvalState = evaluator?.createState(position);
+  const staticEvaluate = (pos, state) => {
+    if (!pos.board.includes(pos.side === 'red' ? 'K' : 'k')) return -MATE;
+    if (!pos.board.includes(pos.side === 'red' ? 'k' : 'K')) return MATE;
+    return evaluator ? evaluator.evaluate(pos, state) : evaluate(pos);
+  };
+  const advance = (pos, move, state) => {
+    const next = makeMove(pos, move);
+    return [next, evaluator ? evaluator.updateState(pos, move, next, state) : null];
+  };
   const fullRootScores = Boolean(options.fullRootScores);
   if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [] };
   const multiPv = fullRootScores ? rootMoves.length : Math.max(1, Math.min(rootMoves.length, Number(options.multiPv) || 1));
-  let nodes = 0, completed = { move: rootMoves[0], depth: 0, score: evaluate(position), pv: [moveName(rootMoves[0])], candidates: rootMoves.map(move => ({ move: moveName(move), score: -evaluate(makeMove(position, move)) })).sort((a, b) => b.score - a.score).slice(0, 8) };
+  let nodes = 0, completed = { move: rootMoves[0], depth: 0, score: staticEvaluate(position, rootEvalState), pv: [moveName(rootMoves[0])], candidates: rootMoves.map(move => {
+    const [next, state] = advance(position, move, rootEvalState);
+    return { move: moveName(move), score: -staticEvaluate(next, state) };
+  }).sort((a, b) => b.score - a.score).slice(0, 8) };
   const repetition = options.history ? [...options.history] : [];
 
   function checkTime() {
@@ -53,11 +67,11 @@ export function chooseMove(position, options = {}) {
     if (killers[ply]?.includes(key)) return 500_000;
     return history.get(key) || 0;
   }
-  function quiescence(pos, alpha, beta, ply) {
+  function quiescence(pos, alpha, beta, ply, evalState) {
     nodes++; checkTime();
-    if (ply >= 24) return evaluate(pos);
+    if (ply >= 24) return staticEvaluate(pos, evalState);
     const checked = isInCheck(pos);
-    const stand = evaluate(pos);
+    const stand = staticEvaluate(pos, evalState);
     if (!checked) {
       if (stand >= beta) return beta;
       if (stand > alpha) alpha = stand;
@@ -65,13 +79,14 @@ export function chooseMove(position, options = {}) {
     const source = checked ? legalMoves(pos) : pseudoMoves(pos, pos.side, true).filter(m => !isInCheck(makeMove(pos, m), pos.side));
     if (checked && !source.length) return -MATE + ply;
     for (const move of ordered(source, null, ply)) {
-      const score = -quiescence(makeMove(pos, move), -beta, -alpha, ply + 1);
+      const [next, nextState] = advance(pos, move, evalState);
+      const score = -quiescence(next, -beta, -alpha, ply + 1, nextState);
       if (score >= beta) return beta;
       if (score > alpha) alpha = score;
     }
     return alpha;
   }
-  function negamax(pos, depth, alpha, beta, ply) {
+  function negamax(pos, depth, alpha, beta, ply, evalState) {
     nodes++; checkTime();
     const key = positionKey(pos);
     if (repetition.filter(item => item === key).length >= 2) {
@@ -79,7 +94,7 @@ export function chooseMove(position, options = {}) {
       if (result) return result.winner === null ? 0 : result.winner === pos.side ? MATE - ply : -MATE + ply;
     }
     if (pos.halfmove >= 120) return 0;
-    if (depth <= 0) return quiescence(pos, alpha, beta, ply);
+    if (depth <= 0) return quiescence(pos, alpha, beta, ply, evalState);
     const entry = table.get(key), originalAlpha = alpha;
     if (entry && entry.depth >= depth) {
       if (entry.flag === 'exact') return entry.score;
@@ -93,7 +108,8 @@ export function chooseMove(position, options = {}) {
     repetition.push(key);
     try {
       for (const move of ordered(moves, entry?.move, ply)) {
-        const score = -negamax(makeMove(pos, move), depth - 1, -beta, -alpha, ply + 1);
+        const [next, nextState] = advance(pos, move, evalState);
+        const score = -negamax(next, depth - 1, -beta, -alpha, ply + 1, nextState);
         if (score > best) { best = score; bestMove = moveName(move); }
         if (score > alpha) alpha = score;
         if (alpha >= beta) {
@@ -133,13 +149,13 @@ export function chooseMove(position, options = {}) {
       repetition.push(rootKey);
       try {
         for (const move of ordered(rootMoves, ttMove, 0)) {
-          const next = makeMove(position, move);
+          const [next, nextState] = advance(position, move, rootEvalState);
           if (scores.length >= multiPv) {
             const threshold = scores[multiPv - 1].score;
-            const probe = -negamax(next, depth - 1, -INF, -threshold, 1);
+            const probe = -negamax(next, depth - 1, -INF, -threshold, 1, nextState);
             if (probe <= threshold) continue;
           }
-          const score = -negamax(next, depth - 1, -INF, INF, 1);
+          const score = -negamax(next, depth - 1, -INF, INF, 1, nextState);
           scores.push({ move: moveName(move), score, pv: continuation(move, depth) });
           scores.sort((a, b) => b.score - a.score);
           scores.length = Math.min(scores.length, multiPv);

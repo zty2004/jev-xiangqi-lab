@@ -65,6 +65,20 @@ test('search selects a legal move and reports completed depth', () => {
   assert.ok(legalMoves(position).some(move => moveName(move) === moveName(result.move)));
 });
 
+test('search evaluates tree leaves through the configured incremental evaluator', () => {
+  let refreshes = 0, updates = 0, evaluations = 0;
+  const evaluator = {
+    createState: () => { refreshes++; return 0; },
+    updateState: (_position, _move, _next, state) => { updates++; return state + 1; },
+    evaluate: (_position, state) => { evaluations++; return state; },
+  };
+  const result = chooseMove(parseFen(), { timeMs: 1000, maxDepth: 1, evaluator });
+  assert.ok(result.move);
+  assert.equal(refreshes, 1);
+  assert.ok(updates >= legalMoves(parseFen()).length);
+  assert.ok(evaluations > 0);
+});
+
 test('teaching analysis ranks distinct legal moves with full root scores', () => {
   const position = parseFen();
   const result = chooseMove(position, { timeMs: 300, maxDepth: 2, fullRootScores: true });

@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { chooseMove } from './src/engine.js';
 import { chineseMove, formatChineseLine, formatChineseMove } from './src/chinese-notation.js';
 import { LocalChoice } from './src/local-choice.js';
-import { currentChoiceModel } from './src/model-selection.js';
+import { currentChoiceModel, currentNnueModel } from './src/model-selection.js';
+import { loadNnueModel, NnueEvaluator } from './src/nnue-evaluator.js';
 import { loadMasterOpeningBook, masterOpeningCandidates } from './src/opening-book.js';
 import { gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 
@@ -13,6 +14,8 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT) || 3000;
 const choiceModel = currentChoiceModel();
 const localChoice = choiceModel ? new LocalChoice(choiceModel) : null;
+const nnueModel = currentNnueModel();
+const evaluator = nnueModel ? new NnueEvaluator(loadNnueModel(nnueModel)) : null;
 const masterBook = process.env.OPENING_BOOK === 'off' ? null :
   loadMasterOpeningBook(process.env.OPENING_BOOK || new URL('./data/master-opening-book.json', import.meta.url));
 const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
@@ -40,7 +43,7 @@ function view(position, history = []) {
 async function analyzePosition(position, history, timeMs, multiPv = 1, allowedRootMoves = null) {
   const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(5000, timeMs), history) : null;
   const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
-  const analysis = chooseMove(position, { timeMs, history: history.slice(0, -1), priors, multiPv, allowedRootMoves });
+  const analysis = chooseMove(position, { timeMs, history: history.slice(0, -1), priors, multiPv, allowedRootMoves, evaluator });
   return { analysis, ranking, priors };
 }
 

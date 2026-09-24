@@ -2,13 +2,16 @@ import readline from 'node:readline';
 import { chooseMove } from './src/engine.js';
 import { START_FEN, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 import { LocalChoice } from './src/local-choice.js';
-import { currentChoiceModel } from './src/model-selection.js';
+import { currentChoiceModel, currentNnueModel } from './src/model-selection.js';
+import { loadNnueModel, NnueEvaluator } from './src/nnue-evaluator.js';
 import { loadMasterOpeningBook, masterOpeningCandidates } from './src/opening-book.js';
 
 let position = parseFen();
 let history = [positionKey(position)];
 const choiceModel = currentChoiceModel();
 const localChoice = choiceModel ? new LocalChoice(choiceModel) : null;
+const nnueModel = currentNnueModel();
+const evaluator = nnueModel ? new NnueEvaluator(loadNnueModel(nnueModel)) : null;
 const masterBook = process.env.OPENING_BOOK === 'off' ? null :
   loadMasterOpeningBook(process.env.OPENING_BOOK || new URL('./data/master-opening-book.json', import.meta.url));
 const io = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
@@ -56,7 +59,7 @@ io.on('line', async line => {
         const bookMoves = masterOpeningCandidates(position, masterBook);
         const result = chooseMove(position, { timeMs: Math.max(10, requestedMs - (performance.now() - started)),
           maxDepth: depthIndex >= 0 ? Number(tokens[depthIndex + 1]) : 12, history: history.slice(0, -1), priors,
-          allowedRootMoves: bookMoves.length ? bookMoves.map(item => item.move) : null });
+          allowedRootMoves: bookMoves.length ? bookMoves.map(item => item.move) : null, evaluator });
         const selected = result.move ? moveName(result.move) : '0000';
         if (bookMoves.length) console.log(`info string master opening book ${bookMoves.length} candidate moves, ${bookMoves.find(item => item.move === selected)?.masterGames || 0} master games`);
         if (ranking) console.log(`info string local choice ranked ${ranking.choices.length} legal moves, selected ${selected} probability ${(priors.get(selected) || 0).toFixed(4)}`);
