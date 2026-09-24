@@ -5,12 +5,14 @@ import { fileURLToPath } from 'node:url';
 import { chooseMove } from './src/engine.js';
 import { chineseMove, formatChineseLine, formatChineseMove } from './src/chinese-notation.js';
 import { LocalChoice } from './src/local-choice.js';
+import { currentChoiceModel } from './src/model-selection.js';
 import { loadMasterOpeningBook, masterOpeningCandidates } from './src/opening-book.js';
 import { gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT) || 3000;
-const localChoice = process.env.CHOICE_MODEL ? new LocalChoice(process.env.CHOICE_MODEL) : null;
+const choiceModel = currentChoiceModel();
+const localChoice = choiceModel ? new LocalChoice(choiceModel) : null;
 const masterBook = process.env.OPENING_BOOK === 'off' ? null :
   loadMasterOpeningBook(process.env.OPENING_BOOK || new URL('./data/master-opening-book.json', import.meta.url));
 const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };

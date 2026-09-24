@@ -1,0 +1,6 @@
+{
+  "model": "choice-master-opening-gpu0.pt",
+  "sha256": "f5b08899956b3d6a0e5b36f65b7fb495f85d859e67efc95c210e39475c09452b",
+  "promotedAt": "2026-09-24",
+  "reason": "Improved the independent teacher holdout and master-opening holdout versus the previous production model; paired Pikafish smoke result was tied at 0/2."
+}

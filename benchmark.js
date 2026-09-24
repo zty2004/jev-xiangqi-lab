@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gameResult, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 import { loadOpeningLines } from './src/opening-book.js';
+import { currentChoiceModel } from './src/model-selection.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -21,6 +22,7 @@ const maxPlies = Number(option('--maxplies', 240));
 const outputPath = path.resolve(option('--output', 'benchmark-results.jsonl'));
 const openingBook = option('--openings');
 const openingPlies = Number(option('--opening-plies', 8));
+const choiceModelPath = currentChoiceModel();
 if (!pikafishPath || !Number.isInteger(gameCount) || gameCount < 2 || gameCount % 2 ||
     !Number.isInteger(startGame) || startGame < 0 || startGame >= gameCount ||
     !Number.isInteger(moveTime) || moveTime < 10) {
@@ -112,9 +114,9 @@ async function main() {
       uciHash: await fileHash(path.join(root, 'uci.js')),
       benchmarkHarnessHash: await fileHash(path.join(root, 'benchmark.js')),
       rulesHash: await fileHash(path.join(root, 'src/xiangqi.js')),
-      choiceModelHash: process.env.CHOICE_MODEL ? await fileHash(process.env.CHOICE_MODEL) : null,
-      choiceCodeHash: process.env.CHOICE_MODEL ? await fileHash(path.join(root, 'train/choice_model.py')) : null,
-      choiceAdapterHash: process.env.CHOICE_MODEL ? await fileHash(path.join(root, 'src/local-choice.js')) : null,
+      choiceModelHash: choiceModelPath ? await fileHash(choiceModelPath) : null,
+      choiceCodeHash: choiceModelPath ? await fileHash(path.join(root, 'train/choice_model.py')) : null,
+      choiceAdapterHash: choiceModelPath ? await fileHash(path.join(root, 'src/local-choice.js')) : null,
       pikafishHash: await fileHash(pikafishPath) };
     out.write(JSON.stringify({ kind: 'run', date: new Date().toISOString(), settings }) + '\n');
     for (let game = startGame; game < gameCount; game++) {

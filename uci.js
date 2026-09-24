@@ -2,11 +2,13 @@ import readline from 'node:readline';
 import { chooseMove } from './src/engine.js';
 import { START_FEN, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 import { LocalChoice } from './src/local-choice.js';
+import { currentChoiceModel } from './src/model-selection.js';
 import { loadMasterOpeningBook, masterOpeningCandidates } from './src/opening-book.js';
 
 let position = parseFen();
 let history = [positionKey(position)];
-const localChoice = process.env.CHOICE_MODEL ? new LocalChoice(process.env.CHOICE_MODEL) : null;
+const choiceModel = currentChoiceModel();
+const localChoice = choiceModel ? new LocalChoice(choiceModel) : null;
 const masterBook = process.env.OPENING_BOOK === 'off' ? null :
   loadMasterOpeningBook(process.env.OPENING_BOOK || new URL('./data/master-opening-book.json', import.meta.url));
 const io = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
