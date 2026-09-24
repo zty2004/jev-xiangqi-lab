@@ -5,6 +5,7 @@
 | 来源 | 核查结果 | 本次处理 |
 | --- | --- | --- |
 | 本项目生成的 Pikafish 自对弈 | 使用[官方 Pikafish](https://github.com/official-pikafish/Pikafish)二进制，按种子选择开局并记录全局走法、终止状态；二进制不进入仓库。 | 纳入 `data/ai-games-160.jsonl`：160 局、17,667 步，其中 104 局自然终局、56 局达到 140 步上限。相应逐局面分析见 `data/teacher-games-160.jsonl`：16,387 个局面。两份文件由 `verify-games.js` 交叉校验。Pikafish 仅作为外部教师/评测者。 |
+| 本项目 Jev 模型自对弈 | 当前正式走法模型与自研分阶段搜索控制红黑双方；从已验证开局变化开始，固定随机种子记录探索选择。 | `data/selfplay-sample-games.jsonl` 含 4 局流程样例、304 个半回合；`data/selfplay-sample-positions.jsonl` 含开局后 272 个局面及完整模型概率、搜索分布和剪枝统计。2 局将死、1 局三次重复、1 局达到上限并标为截断。样例用于验证管线，不作为棋力结论。 |
 | [Pika Xiangqi Zero / Px0](https://www.kaggle.com/datasets/pikacat/px0data) | [Pikafish 官方 README](https://github.com/official-pikafish/Pikafish#acknowledgements)称训练数据为 ODbL；Kaggle 当前 API 却返回 `licenseName: Unknown`，约 11 GB，文件格式未核实。 | 保留为待核查来源；未把训练 chunk 当成完整棋谱，也未下载整个数据集。 |
 | [Xiangqi-R1 完整对局数据](https://huggingface.co/datasets/hoduyquocbao/xiangqi-r1-master-dataset) | 数据卡称 Apache-2.0、约 519 MB，以多轮消息记录对局；本环境的文件 API 返回 401，尚未抽样验证合法性。 | 待取得可访问文件并做逐步重放后再纳入。 |
 | [Xiangqi Gen6 / NNUE 自对弈数据](https://huggingface.co/datasets/hoduyquocbao/xiangqi-gen6-platinum-dataset) | 数据卡称 MIT，主要宣称局面和权重；卡片自报体量与页面体量不同，尚未核实是否有完整对局。 | 暂不计入棋谱；后续逐文件检查。 |

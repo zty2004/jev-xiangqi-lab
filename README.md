@@ -151,6 +151,18 @@ node master-book-positions.js --book data/master-opening-book.json --output data
 
 ## 后续训练方向
 
+### 自对弈棋谱生成
+
+`selfplay.js` 使用当前正式走法模型，让红黑双方共享同一套分阶段搜索。每局从不同的已验证开局变化开始；探索阶段在搜索前三名中按分差采样，之后选择搜索首位。输出一份可重放棋谱和一份逐局面的训练记录，后者同时保存完整 Jev 走法概率、搜索分布、局面分值、阶段、主变化与剪枝统计。
+
+```sh
+npm run selfplay -- --games 20 --movetime 100 --maxplies 160 \
+  --output data/selfplay-games.jsonl \
+  --positions-output data/selfplay-positions.jsonl
+```
+
+固定 `--seed` 可复现开局顺序和随机采样；限时搜索可能因机器调度在相邻深度间变化。需要严格固定搜索深度时可增加 `--depth 5`，同时给 `--movetime` 留出足够的硬超时时间。达到步数上限的对局标为 `censored`，不能当作和棋胜负标签；自然终局才可用于价值训练。正式生成大数据时使用 GPU 0 运行走法模型，搜索本身仍由 CPU 执行。
+
 训练分成两步：先用已许可的棋谱或自对弈局面采样，用 Pikafish 为候选招生成教师评分，监督训练本地走法模型；再通过自对弈强化学习优化胜率。模型始终输出当前局面的全部合法走法分布。模型概率用于指导自研搜索，最终由搜索分数选择走法。
 
 Pikafish 仅作为教师数据生成器与外部评测对手，训练数据与评测对局必须分开，避免测试集泄漏。超过 Pikafish 是长期实验目标；是否实现以固定条件下的对局胜率为准。

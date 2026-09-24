@@ -1,0 +1,28 @@
+{
+  "schema": "jev-selfplay-report-v1",
+  "games": 4,
+  "plies": 304,
+  "trainingPositions": 272,
+  "terminalGames": 3,
+  "censoredGames": 1,
+  "results": {
+    "redWins": 1,
+    "blackWins": 1,
+    "draws": 1,
+    "censored": 1
+  },
+  "settings": {
+    "moveTimeMs": 50,
+    "maxPlies": 140,
+    "openingPlies": 8,
+    "explorePlies": 24,
+    "temperatureCp": 80,
+    "seed": 20260924
+  },
+  "choiceModel": "choice-master-opening-gpu0.pt",
+  "choiceModelSha256": "f5b08899956b3d6a0e5b36f65b7fb495f85d859e67efc95c210e39475c09452b",
+  "valueModel": null,
+  "gamesSha256": "09a85fa75c9f7b6b7874da074bd52e06f12e2ef61a9074e5c697126224e7c175",
+  "positionsSha256": "4905fe3d1584aee8fbf30fa4609ea20ef4ec100e5b4ce891e534e1eb867f7bf8",
+  "note": "Pipeline sample only; it is too small and uses the classical evaluator, so it is not evidence of playing strength."
+}

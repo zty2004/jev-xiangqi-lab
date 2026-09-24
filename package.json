@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "benchmark": "node benchmark.js"
+    "benchmark": "node benchmark.js",
+    "selfplay": "node selfplay.js"
   },
   "engines": { "node": ">=20" }
 }
