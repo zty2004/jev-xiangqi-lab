@@ -4,6 +4,28 @@ const VALUES = { k: 20000, r: 1000, c: 470, n: 430, b: 220, a: 220, p: 120 };
 const MATE = 30000;
 const INF = 32000;
 
+const PHASE_UNITS = { r: 4, c: 2, n: 2, b: 1, a: 1, p: 0, k: 0 };
+
+export function gamePhase(position) {
+  let units = 0, nonKings = 0;
+  for (const piece of position.board) {
+    if (piece === '.') continue;
+    const type = piece.toLowerCase();
+    units += PHASE_UNITS[type];
+    if (type !== 'k') nonKings++;
+  }
+  if (units <= 12 || nonKings <= 8) return 'endgame';
+  if (position.fullmove <= 12 && units >= 32) return 'opening';
+  return 'middlegame';
+}
+
+export function searchProfile(position) {
+  const phase = gamePhase(position);
+  if (phase === 'opening') return { phase, defaultMaxDepth: 10, quiescencePly: 16, neuralWeight: 0.35 };
+  if (phase === 'endgame') return { phase, defaultMaxDepth: 24, quiescencePly: 48, neuralWeight: 0.2 };
+  return { phase, defaultMaxDepth: 14, quiescencePly: 28, neuralWeight: 1 };
+}
+
 export function evaluate(position) {
   let score = 0;
   for (let i = 0; i < 90; i++) {
@@ -24,7 +46,8 @@ class Stopped extends Error {}
 
 export function chooseMove(position, options = {}) {
   const timeMs = Math.max(10, Number(options.timeMs) || 1000);
-  const maxDepth = Math.max(1, Math.min(20, Number(options.maxDepth) || 12));
+  const profile = searchProfile(position);
+  const maxDepth = Math.max(1, Math.min(32, Number(options.maxDepth) || profile.defaultMaxDepth));
   const start = performance.now(), deadline = start + timeMs;
   const table = new Map(), history = new Map(), killers = Array.from({ length: 64 }, () => []);
   const legalRootMoves = legalMoves(position);
@@ -37,14 +60,17 @@ export function chooseMove(position, options = {}) {
   const staticEvaluate = (pos, state) => {
     if (!pos.board.includes(pos.side === 'red' ? 'K' : 'k')) return -MATE;
     if (!pos.board.includes(pos.side === 'red' ? 'k' : 'K')) return MATE;
-    return evaluator ? evaluator.evaluate(pos, state) : evaluate(pos);
+    const classical = evaluate(pos);
+    if (!evaluator) return classical;
+    const neural = evaluator.evaluate(pos, state);
+    return Math.round(neural * profile.neuralWeight + classical * (1 - profile.neuralWeight));
   };
   const advance = (pos, move, state) => {
     const next = makeMove(pos, move);
     return [next, evaluator ? evaluator.updateState(pos, move, next, state) : null];
   };
   const fullRootScores = Boolean(options.fullRootScores);
-  if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [] };
+  if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [], phase: profile.phase };
   const multiPv = fullRootScores ? rootMoves.length : Math.max(1, Math.min(rootMoves.length, Number(options.multiPv) || 1));
   let nodes = 0, completed = { move: rootMoves[0], depth: 0, score: staticEvaluate(position, rootEvalState), pv: [moveName(rootMoves[0])], candidates: rootMoves.map(move => {
     const [next, state] = advance(position, move, rootEvalState);
@@ -69,7 +95,7 @@ export function chooseMove(position, options = {}) {
   }
   function quiescence(pos, alpha, beta, ply, evalState) {
     nodes++; checkTime();
-    if (ply >= 24) return staticEvaluate(pos, evalState);
+    if (ply >= profile.quiescencePly) return staticEvaluate(pos, evalState);
     const checked = isInCheck(pos);
     const stand = staticEvaluate(pos, evalState);
     if (!checked) {
@@ -171,5 +197,5 @@ export function chooseMove(position, options = {}) {
     }
     if (performance.now() >= deadline) break;
   }
-  return { ...completed, nodes, timeMs: Math.round(performance.now() - start) };
+  return { ...completed, nodes, timeMs: Math.round(performance.now() - start), phase: profile.phase };
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { chooseMove } from '../src/engine.js';
+import { chooseMove, gamePhase, searchProfile } from '../src/engine.js';
 import { START_FEN, gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, playMove, positionKey, pseudoMoves, squareIndex, toFen } from '../src/xiangqi.js';
 
 function perft(position, depth) {
@@ -63,6 +63,17 @@ test('search selects a legal move and reports completed depth', () => {
   const result = chooseMove(position, { timeMs: 300, maxDepth: 3 });
   assert.ok(result.depth >= 1);
   assert.ok(legalMoves(position).some(move => moveName(move) === moveName(result.move)));
+});
+
+test('search phase separates opening, middlegame, and low-material endgame', () => {
+  const opening = parseFen();
+  const middlegame = parseFen(toFen(opening).replace(' 0 1', ' 0 20'));
+  const endgame = parseFen('4k4/9/9/9/4p4/9/9/9/9/R3K4 w - - 0 40');
+  assert.equal(gamePhase(opening), 'opening');
+  assert.equal(gamePhase(middlegame), 'middlegame');
+  assert.equal(gamePhase(endgame), 'endgame');
+  assert.ok(searchProfile(endgame).defaultMaxDepth > searchProfile(middlegame).defaultMaxDepth);
+  assert.ok(searchProfile(endgame).neuralWeight < searchProfile(middlegame).neuralWeight);
 });
 
 test('search evaluates tree leaves through the configured incremental evaluator', () => {

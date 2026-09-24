@@ -62,6 +62,7 @@ io.on('line', async line => {
           allowedRootMoves: bookMoves.length ? bookMoves.map(item => item.move) : null, evaluator });
         const selected = result.move ? moveName(result.move) : '0000';
         if (bookMoves.length) console.log(`info string master opening book ${bookMoves.length} candidate moves, ${bookMoves.find(item => item.move === selected)?.masterGames || 0} master games`);
+        console.log(`info string phase ${result.phase}`);
         if (ranking) console.log(`info string local choice ranked ${ranking.choices.length} legal moves, selected ${selected} probability ${(priors.get(selected) || 0).toFixed(4)}`);
         console.log(`info depth ${result.depth} score cp ${result.score} nodes ${result.nodes} time ${result.timeMs} pv ${result.pv.join(' ')}`);
         console.log(`bestmove ${selected}`);
