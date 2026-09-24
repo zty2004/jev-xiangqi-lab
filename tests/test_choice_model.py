@@ -16,6 +16,22 @@ spec.loader.exec_module(choice_model)
 
 
 class ChoiceModelTests(unittest.TestCase):
+    def test_horizontal_mirror_is_an_involution_for_fen_and_moves(self):
+        fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+        self.assertEqual(choice_model.mirror_fen(choice_model.mirror_fen(fen)), fen)
+        self.assertEqual(choice_model.mirror_move("b2e2"), "h2e2")
+        self.assertEqual(choice_model.mirror_move(choice_model.mirror_move("b2e2")), "b2e2")
+
+    def test_mirror_augmentation_doubles_training_examples_without_changing_targets(self):
+        row = {"fen": "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/4C2C1/9/RNBAKABNR w - - 0 1",
+               "legal": ["b2e2", "h2e2"], "best": "b2e2", "source": "opening-book",
+               "policy": {"b2e2": 0.75, "h2e2": 0.25}}
+        dataset = choice_model.TeacherDataset([row], mirror_augmentation=True)
+        self.assertEqual(len(dataset), 2)
+        original, mirrored = dataset[0], dataset[1]
+        self.assertTrue(torch.equal(original[2], mirrored[2]))
+        self.assertFalse(torch.equal(original[0], mirrored[0]))
+
     def test_dominant_teacher_target_keeps_final_best_above_stale_multipv(self):
         row = {"fen": "board w", "legal": ["a0a1", "a0a2"], "best": "a0a2",
                "candidates": [{"move": "a0a1", "score": 100, "scoreType": "cp"}]}

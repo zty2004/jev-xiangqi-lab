@@ -26,5 +26,5 @@ CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 -u "${common[@]}" \
   --output models/choice-master-dominant-64x4-gpu0.pt
 
 CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 -u "${common[@]}" \
-  --channels 96 --blocks 6 --lr 0.0005 \
-  --output models/choice-master-dominant-96x6-gpu0.pt
+  --channels 64 --blocks 4 --lr 0.001 --mirror-augmentation \
+  --output models/choice-master-dominant-mirror-64x4-gpu0.pt

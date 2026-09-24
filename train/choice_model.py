@@ -69,6 +69,35 @@ def square_index(name, turn):
     return 89 - index if turn == "b" else index
 
 
+def mirror_move(move):
+    return FILES[8 - FILES.index(move[0])] + move[1] + FILES[8 - FILES.index(move[2])] + move[3]
+
+
+def mirror_fen(fen):
+    tokens = fen.split()
+    mirrored = []
+    for rank in tokens[0].split("/"):
+        expanded = []
+        for token in rank:
+            expanded.extend(["."] * int(token) if token.isdigit() else [token])
+        if len(expanded) != 9:
+            raise ValueError("invalid FEN rank")
+        compressed, empty = "", 0
+        for token in reversed(expanded):
+            if token == ".":
+                empty += 1
+            else:
+                if empty:
+                    compressed += str(empty)
+                    empty = 0
+                compressed += token
+        if empty:
+            compressed += str(empty)
+        mirrored.append(compressed)
+    tokens[0] = "/".join(mirrored)
+    return " ".join(tokens)
+
+
 def encode_moves(moves, turn):
     return torch.tensor([[square_index(move[:2], turn), square_index(move[2:], turn)] for move in moves], dtype=torch.long)
 
@@ -96,18 +125,25 @@ def target_distribution(row, best_weight=0.3):
 
 
 class TeacherDataset(Dataset):
-    def __init__(self, rows, input_channels=16, value_head="scalar", policy_target="soft"):
+    def __init__(self, rows, input_channels=16, value_head="scalar", policy_target="soft", mirror_augmentation=False):
         self.rows = rows
         self.input_channels = input_channels
         self.value_head = value_head
         self.policy_target = policy_target
+        self.mirror_augmentation = mirror_augmentation
 
     def __len__(self):
-        return len(self.rows)
+        return len(self.rows) * (2 if self.mirror_augmentation else 1)
 
     def __getitem__(self, index):
+        mirrored = self.mirror_augmentation and index % 2 == 1
+        if self.mirror_augmentation:
+            index //= 2
         row = self.rows[index]
-        turn = row["fen"].split()[1]
+        fen = mirror_fen(row["fen"]) if mirrored else row["fen"]
+        legal = [mirror_move(move) for move in row["legal"]] if mirrored else row["legal"]
+        previous = [mirror_fen(item) for item in row.get("previous", [])] if mirrored else row.get("previous")
+        turn = fen.split()[1]
         policy, value = target_distribution(row, 0.7 if self.policy_target == "dominant" else 0.3)
         if self.policy_target == "best" and row.get("source") != "opening-book":
             policy = torch.zeros_like(policy)
@@ -121,8 +157,8 @@ class TeacherDataset(Dataset):
         else:
             weight = float(row.get("source") != "opening-book")
             value_tensor = torch.tensor(value, dtype=torch.float32)
-        return (encode_position(row["fen"], row.get("previous"), row.get("repetitionCount", 1), self.input_channels),
-                encode_moves(row["legal"], turn), policy, value_tensor,
+        return (encode_position(fen, previous, row.get("repetitionCount", 1), self.input_channels),
+                encode_moves(legal, turn), policy, value_tensor,
                 row["legal"].index(row["best"]), torch.tensor(weight))
 
 
@@ -402,9 +438,13 @@ def train(args):
     input_channels = 46 if args.history_data else 16
     if args.value_head == "wdl" and not args.history_data:
         raise ValueError("WDL training requires game outcome labels")
-    sampler = (WeightedRandomSampler(source_sample_weights(training, source_weights), len(training), replacement=True,
-                                     generator=torch.Generator().manual_seed(args.seed)) if source_weights else None)
-    train_loader = DataLoader(TeacherDataset(training, input_channels, args.value_head, args.policy_target),
+    sample_weights = source_sample_weights(training, source_weights) if source_weights else None
+    if sample_weights and args.mirror_augmentation:
+        sample_weights = [weight for weight in sample_weights for _ in range(2)]
+    sampler = (WeightedRandomSampler(sample_weights, len(sample_weights), replacement=True,
+                                     generator=torch.Generator().manual_seed(args.seed)) if sample_weights else None)
+    train_dataset = TeacherDataset(training, input_channels, args.value_head, args.policy_target, args.mirror_augmentation)
+    train_loader = DataLoader(train_dataset,
                               batch_size=args.batch, shuffle=sampler is None, sampler=sampler, collate_fn=collate)
     validation_loader = DataLoader(TeacherDataset(validation, input_channels, args.value_head, args.policy_target), batch_size=args.batch, collate_fn=collate)
     model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head, args.value_loss_weight).to(device)
@@ -431,6 +471,7 @@ def train(args):
             torch.save({"state_dict": model.state_dict(), "channels": args.channels, "blocks": args.blocks,
                         "input_channels": input_channels, "value_head": args.value_head,
                         "value_loss_weight": args.value_loss_weight, "policy_target": args.policy_target,
+                        "mirror_augmentation": args.mirror_augmentation,
                         "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
                         "source_weights": source_weights,
@@ -438,7 +479,8 @@ def train(args):
                         "history_sha256": sha256_file(args.history_data) if args.history_data else None,
                         "opening_sha256": sha256_file(args.opening_data) if args.opening_data else None,
                         "split_sizes": {"train": len(training), "validation": len(validation),
-                                        "calibration": len(calibration), "test": len(test)}}, args.output)
+                                        "calibration": len(calibration), "test": len(test)},
+                        "effective_training_examples": len(train_dataset)}, args.output)
         else:
             stale_epochs += 1
             if args.patience and stale_epochs >= args.patience:
@@ -508,6 +550,8 @@ def main():
     train_parser.add_argument("--value-head", choices=["scalar", "wdl"], default="scalar")
     train_parser.add_argument("--value-loss-weight", type=float, default=0.2)
     train_parser.add_argument("--policy-target", choices=["soft", "dominant", "best"], default="soft")
+    train_parser.add_argument("--mirror-augmentation", action="store_true",
+                              help="add a horizontally mirrored copy of every training position")
     train_parser.add_argument("--source-weight", action="append", default=[],
                               help="training-only sampling weight INDEX:WEIGHT for a --data source; repeatable")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
