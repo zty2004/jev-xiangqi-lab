@@ -107,6 +107,20 @@ def target_distribution(row, best_weight=0.3):
     if row.get("source") == "opening-book":
         targets = torch.tensor([row["policy"].get(move, 0.0) for move in moves], dtype=torch.float32)
         return targets / targets.sum(), 0.0
+    if row.get("searchPolicy"):
+        policy = row["searchPolicy"]
+        if len({item.get("move") for item in policy}) != len(policy):
+            raise ValueError("duplicate self-play search move")
+        probabilities = {item.get("move"): item.get("probability") for item in policy}
+        if any(move not in moves or not isinstance(probability, (int, float)) or
+               not math.isfinite(probability) or probability < 0
+               for move, probability in probabilities.items()):
+            raise ValueError("invalid self-play search policy")
+        targets = torch.tensor([probabilities.get(move, 0.0) for move in moves], dtype=torch.float32)
+        if targets.sum() <= 0:
+            raise ValueError("empty self-play search policy")
+        value = float(math.tanh(float(row.get("value", 0)) / 700))
+        return targets / targets.sum(), value
     targets = torch.zeros(len(moves), dtype=torch.float32)
     candidates = [item for item in row.get("candidates", []) if item["move"] in moves]
     if candidates:

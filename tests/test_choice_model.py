@@ -41,6 +41,21 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertAlmostEqual(float(dominant[1]), 0.7)
         self.assertAlmostEqual(float(dominant.sum()), 1)
 
+    def test_selfplay_target_uses_recorded_search_distribution(self):
+        row = {"fen": "board w", "legal": ["a0a1", "a0a2", "b0c2"], "best": "a0a1", "value": 350,
+               "searchPolicy": [{"move": "a0a1", "probability": 0.6},
+                                {"move": "b0c2", "probability": 0.4}],
+               "candidates": [{"move": "a0a1", "score": 999}]}
+        target, value = choice_model.target_distribution(row, 0.7)
+        self.assertTrue(torch.allclose(target, torch.tensor([0.6, 0.0, 0.4])))
+        self.assertAlmostEqual(value, math.tanh(0.5))
+
+    def test_selfplay_target_rejects_duplicate_moves(self):
+        row = {"legal": ["a0a1"], "best": "a0a1", "searchPolicy": [
+            {"move": "a0a1", "probability": 0.5}, {"move": "a0a1", "probability": 0.5}]}
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            choice_model.target_distribution(row)
+
     def test_untrained_wdl_head_is_not_exposed_as_a_probability(self):
         model = choice_model.ChoiceNet(16, 1, 46, "wdl", 0.0)
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
