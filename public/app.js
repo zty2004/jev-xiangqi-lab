@@ -1,11 +1,12 @@
 const $ = id => document.getElementById(id);
 const labels = { K: '帅', A: '仕', B: '相', N: '马', R: '车', C: '炮', P: '兵', k: '将', a: '士', b: '象', n: '马', r: '车', c: '炮', p: '卒' };
 const files = 'abcdefghi';
-let state = null, selected = null, busy = false, human = 'red', mode = 'play';
+let state = null, selected = null, busy = false, analysisBusy = false, human = 'red', mode = 'play';
 let snapshots = [], lastMove = null, analysis = null;
+let analysisController = null, analysisGeneration = 0;
 
-async function api(path, payload) {
-  const response = await fetch(path, payload ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) } : undefined);
+async function api(path, payload, signal = undefined) {
+  const response = await fetch(path, payload ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal } : { signal });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || '请求失败');
   return data;
@@ -88,9 +89,11 @@ function render() {
   renderRecommendations();
   const turn = state.side === 'red' ? '红方' : '黑方';
   $('status').textContent = state.result ? `${state.result.winner ? (state.result.winner === 'red' ? '红方' : '黑方') + '获胜' : '和棋'}` :
-    busy ? mode === 'teach' ? '正在分析推荐…' : '电脑正在思考…' : `${turn}走棋${state.inCheck ? ' · 被将军' : ''}`;
+    busy ? mode === 'teach' ? '正在落子…' : '电脑正在思考…' :
+      analysisBusy && mode === 'teach' ? '正在更新推荐 · 可随时走子' : `${turn}走棋${state.inCheck ? ' · 被将军' : ''}`;
   const opening = state.analysis?.opening;
-  $('detail').textContent = state.result ? state.result.reason : mode === 'teach' ? '双方都由你走棋；推荐仅供参考。' :
+  $('detail').textContent = state.result ? state.result.reason : mode === 'teach' ?
+    `双方都由你走棋；引擎在后台按${$('time').value / 1000}秒上限刷新推荐，你可随时走任意合法招。` :
     opening ? `${opening.screenHorseRepertoire ? '屏风马开局' : '大师开局库'}：${state.moveChinese} · ${opening.masterGames} 局样本。选择棋子，再选择落点。` :
       state.side === human ? '选择棋子，再选择落点。' : `搜索引擎正在为${turn}选招。`;
   $('move-count').textContent = `${snapshots.length ? snapshots.length - 1 : 0} 步`;
@@ -111,7 +114,17 @@ function render() {
   list.scrollTop = list.scrollHeight;
 }
 
-function save(next) { state = next; snapshots.push(structuredClone(next)); lastMove = next.move || null; selected = null; analysis = null; render(); }
+function cancelAnalysis() {
+  analysisGeneration++;
+  analysisController?.abort();
+  analysisController = null;
+  analysisBusy = false;
+}
+
+function save(next) {
+  cancelAnalysis();
+  state = next; snapshots.push(structuredClone(next)); lastMove = next.move || null; selected = null; analysis = null; render();
+}
 
 async function click(index) {
   if (!state || busy || state.result || (mode === 'play' && state.side !== human)) return;
@@ -120,8 +133,11 @@ async function click(index) {
     const notation = squareName(selected) + name;
     if (state.legalMoves.includes(notation)) {
       busy = true; render();
-      try { save(await api('/api/move', { fen: state.fen, history: state.history, move: notation }));
-        if (mode === 'teach') await analyzeCurrent(); else await computerTurn(); }
+      try {
+        save(await api('/api/move', { fen: state.fen, history: state.history, move: notation }));
+        busy = false; render();
+        if (mode === 'teach') void analyzeCurrent(); else await computerTurn();
+      }
       catch (error) { alert(error.message); }
       finally { busy = false; render(); }
       return;
@@ -141,18 +157,24 @@ async function computerTurn() {
 
 async function analyzeCurrent() {
   if (mode !== 'teach' || !state || state.result) { analysis = null; render(); return; }
-  const fen = state.fen;
-  busy = true; analysis = null; render();
+  const fen = state.fen, generation = ++analysisGeneration;
+  analysisController?.abort();
+  analysisController = new AbortController();
+  analysisBusy = true; analysis = null; render();
   try {
     const result = await api('/api/analyze', { fen, history: state.history,
-      timeMs: Number($('time').value), count: Number($('recommendation-count').value) });
-    if (mode === 'teach' && state?.fen === fen) analysis = { fen, ...result };
-  } catch (error) { alert(error.message); }
-  finally { busy = false; render(); }
+      timeMs: Number($('time').value), count: Number($('recommendation-count').value) }, analysisController.signal);
+    if (generation === analysisGeneration && mode === 'teach' && state?.fen === fen) analysis = { fen, ...result };
+  } catch (error) {
+    if (error.name !== 'AbortError') alert(error.message);
+  } finally {
+    if (generation === analysisGeneration) { analysisController = null; analysisBusy = false; render(); }
+  }
 }
 
 async function newGame() {
   if (busy) return;
+  cancelAnalysis();
   busy = true; render();
   try {
     mode = $('mode').value; human = $('side').value; state = await api('/api/new'); state.history = [state.fen.split(' ').slice(0, 2).join(' ')];
@@ -163,6 +185,7 @@ async function newGame() {
 
 async function loadFen() {
   if (busy) return;
+  cancelAnalysis();
   busy = true; render();
   try {
     const next = await api('/api/state', { fen: $('fen').value.trim() });
@@ -174,6 +197,7 @@ async function loadFen() {
 
 function undo() {
   if (busy || snapshots.length < 2) return;
+  cancelAnalysis();
   if (mode === 'teach') snapshots.pop();
   else do { snapshots.pop(); } while (snapshots.length > 1 && snapshots.at(-1).side !== human);
   state = structuredClone(snapshots.at(-1)); selected = null; lastMove = state.move || null; analysis = null; render();
@@ -185,4 +209,5 @@ $('side').onchange = () => { $('orientation').value = $('side').value; newGame()
 $('mode').onchange = newGame;
 $('orientation').onchange = render;
 $('recommendation-count').onchange = analyzeCurrent;
+$('time').onchange = () => { if (mode === 'teach') void analyzeCurrent(); };
 newGame();

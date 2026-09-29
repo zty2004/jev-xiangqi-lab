@@ -2,11 +2,10 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chooseMove } from './src/engine.js';
+import { Worker } from 'node:worker_threads';
 import { chineseMove, formatChineseLine, formatChineseMove } from './src/chinese-notation.js';
 import { LocalChoice } from './src/local-choice.js';
 import { currentChoiceModel, currentNnueModel } from './src/model-selection.js';
-import { loadNnueModel, NnueEvaluator } from './src/nnue-evaluator.js';
 import { loadMasterOpeningBook, masterOpeningCandidates } from './src/opening-book.js';
 import { gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 
@@ -15,7 +14,6 @@ const port = Number(process.env.PORT) || 3000;
 const choiceModel = currentChoiceModel();
 const localChoice = choiceModel ? new LocalChoice(choiceModel) : null;
 const nnueModel = currentNnueModel();
-const evaluator = nnueModel ? new NnueEvaluator(loadNnueModel(nnueModel)) : null;
 const masterBook = process.env.OPENING_BOOK === 'off' ? null :
   loadMasterOpeningBook(process.env.OPENING_BOOK || new URL('./data/master-opening-book.json', import.meta.url));
 const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
@@ -43,7 +41,15 @@ function view(position, history = []) {
 async function analyzePosition(position, history, timeMs, multiPv = 1, allowedRootMoves = null) {
   const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(5000, timeMs), history) : null;
   const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
-  const analysis = chooseMove(position, { timeMs, history: history.slice(0, -1), priors, multiPv, allowedRootMoves, evaluator });
+  const analysis = await new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./src/analysis-worker.js', import.meta.url), { workerData: {
+      fen: toFen(position), history: history.slice(0, -1), timeMs, multiPv, allowedRootMoves,
+      priors: priors ? [...priors] : null, nnueModel
+    } });
+    worker.once('message', message => message.error ? reject(new Error(message.error)) : resolve(message));
+    worker.once('error', reject);
+    worker.once('exit', code => { if (code !== 0) reject(new Error(`Analysis worker exited with ${code}`)); });
+  });
   return { analysis, ranking, priors };
 }
 
@@ -79,8 +85,7 @@ const server = http.createServer(async (request, response) => {
       const { analysis, ranking, priors } = await analyzePosition(position, history, timeMs, 1,
         bookMoves.length ? bookMoves.map(item => item.move) : null);
       if (!analysis.move) return json(response, 400, { error: '无合法走法' });
-      const chosen = analysis.move;
-      const selectedNotation = moveName(chosen), moveChinese = formatChineseMove(position, selectedNotation);
+      const selectedNotation = analysis.move, moveChinese = formatChineseMove(position, selectedNotation);
       const choice = ranking ? { selected: moveName(chosen), probability: priors.get(moveName(chosen)) || 0,
         rankedMoves: ranking.choices.length } : null;
       const bookEntry = bookMoves.find(item => item.move === selectedNotation);
@@ -88,6 +93,7 @@ const server = http.createServer(async (request, response) => {
         masterGames: bookEntry.masterGames, screenHorseGames: bookEntry.screenHorseGames,
         screenHorseRepertoire: bookEntry.screenHorseRepertoire, candidateCount: bookMoves.length,
         sourceExamples: bookEntry.sourceExamples } : null;
+      const chosen = legalMoves(position).find(move => moveName(move) === selectedNotation);
       const next = makeMove(position, chosen), nextHistory = [...history, positionKey(next)];
       json(response, 200, { ...view(next, nextHistory), move: selectedNotation, moveChinese,
         analysis: { phase: analysis.phase, depth: analysis.depth, score: analysis.score, nodes: analysis.nodes,
