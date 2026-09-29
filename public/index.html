@@ -58,6 +58,10 @@
         </div>
         <div id="recommendations-card" class="recommendations-card" hidden>
           <div class="card-heading"><span class="section-label">引擎推荐</span><span id="analysis-depth"></span></div>
+          <div class="evaluation" aria-live="polite">
+            <div class="evaluation-labels"><span class="red-side">红方</span><strong id="evaluation-score">等待第一层搜索</strong><span class="black-side">黑方</span></div>
+            <div class="evaluation-bar"><div id="evaluation-red"></div><i></i></div>
+          </div>
           <p class="recommendation-hint">推荐在后台刷新。棋盘上的数字是推荐排名；每招下方显示后续推演，你可随时走任意合法走法。</p>
           <ol id="recommendations"></ol>
         </div>

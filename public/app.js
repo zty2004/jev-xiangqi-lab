@@ -45,8 +45,20 @@ function renderRecommendations() {
   const overlay = $('recommendation-overlay'), list = $('recommendations');
   overlay.replaceChildren(); list.replaceChildren();
   $('analysis-depth').textContent = analysis?.fen === state?.fen ? `深度 ${analysis.depth}` : '';
-  if (mode !== 'teach' || analysis?.fen !== state?.fen) return;
+  const active = mode === 'teach' && analysis?.fen === state?.fen;
+  const score = active ? analysis.score : 0;
+  const decisive = Math.abs(score) >= 29_000;
+  $('evaluation-red').style.width = `${decisive ? score > 0 ? 96 : 4 : 50 + 46 * Math.tanh(score / 500)}%`;
+  $('evaluation-score').textContent = active ? decisive ? `${score > 0 ? '红方' : '黑方'}胜势` :
+    `${score >= 0 ? '红方 +' : '黑方 +'}${Math.abs(score)}` : '等待第一层搜索';
+  if (!active) return;
   const colors = ['#a74934', '#246a79', '#6657a5', '#9a6b23', '#39714d'];
+  const sharedTargets = new Map();
+  for (const [index, item] of analysis.recommendations.entries()) {
+    const target = item.move.slice(2);
+    if (!sharedTargets.has(target)) sharedTargets.set(target, []);
+    sharedTargets.get(target).push(index);
+  }
   const svg = (tag, attrs) => {
     const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
     for (const [key, value] of Object.entries(attrs)) element.setAttribute(key, String(value));
@@ -64,8 +76,9 @@ function renderRecommendations() {
       overlay.append(svg('polygon', { points: `${x2},${y2} ${x2 - ux * 16 - uy * 10},${y2 - uy * 16 + ux * 10} ${x2 - ux * 16 + uy * 10},${y2 - uy * 16 - ux * 10}`,
         fill: colors[index], opacity: 0.9 }));
     }
-    const badgeX = Math.max(22, Math.min(778, target.x + 26));
-    const badgeY = Math.max(22, Math.min(878, target.y - 27));
+    const ranks = sharedTargets.get(item.move.slice(2)), slot = ranks.indexOf(index) - (ranks.length - 1) / 2;
+    const badgeX = Math.max(22, Math.min(778, target.x + 26 + slot * 32));
+    const badgeY = Math.max(22, Math.min(878, target.y - 27 - slot * 19));
     overlay.append(svg('circle', { cx: badgeX, cy: badgeY, r: 18, fill: colors[index], stroke: '#fff8eb', 'stroke-width': 3 }));
     const text = svg('text', { x: badgeX, y: badgeY + 6, 'text-anchor': 'middle', fill: '#fff',
       'font-size': 19, 'font-weight': 800 });

@@ -46,12 +46,13 @@ function startAnalysisWorker(position, history, timeMs, multiPv, allowedRootMove
 }
 
 function analysisView(position, analysis, priors, count) {
+  const redScore = score => position.side === 'red' ? score : -score;
   return { recommendations: analysis.candidates.slice(0, count).map(item => ({
-    move: item.move, notation: formatChineseMove(position, item.move), score: item.score,
+    move: item.move, notation: formatChineseMove(position, item.move), score: redScore(item.score),
     pv: item.pv || [item.move], pvNotation: formatChineseLine(position, item.pv || [item.move]),
     ...(priors ? { probability: priors.get(item.move) || 0 } : {})
   })), phase: analysis.phase, depth: analysis.depth, nodes: analysis.nodes,
-  pruned: analysis.pruned, reduced: analysis.reduced, timeMs: analysis.timeMs };
+  pruned: analysis.pruned, reduced: analysis.reduced, timeMs: analysis.timeMs, score: redScore(analysis.score) };
 }
 
 async function analyzePosition(position, history, timeMs, multiPv = 1, allowedRootMoves = null) {
