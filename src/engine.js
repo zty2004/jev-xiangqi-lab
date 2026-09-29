@@ -75,7 +75,7 @@ export function chooseMove(position, options = {}) {
   const fullRootScores = Boolean(options.fullRootScores);
   if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [], phase: profile.phase };
   const multiPv = fullRootScores ? rootMoves.length : Math.max(1, Math.min(rootMoves.length, Number(options.multiPv) || 1));
-  const rootCandidateOrder = (a, b) => Number(preferredRootMoves.has(b.move)) - Number(preferredRootMoves.has(a.move)) || b.score - a.score;
+  const rootCandidateOrder = (a, b) => b.score - a.score;
   const retainRootCandidates = scores => {
     scores.sort((a, b) => b.score - a.score);
     if (!preferredRootMoves.size) return scores.slice(0, multiPv);

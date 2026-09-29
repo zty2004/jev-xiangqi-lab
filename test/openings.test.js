@@ -40,14 +40,15 @@ test('master book gives the screen horse reply to the central cannon, including 
   assert.deepEqual(masterOpeningCandidates(mainline, book).map(item => item.move), ['h9g7', 'c6c5']);
 });
 
-test('teaching search keeps several candidates while placing a master opening move first', () => {
+test('teaching search keeps master opening candidates while ranking by search score', () => {
   const book = loadMasterOpeningBook(new URL('../data/master-opening-book.json', import.meta.url));
   const position = playMove(parseFen(), 'b2e2');
   const preferred = masterOpeningCandidates(position, book).map(item => item.move);
   const result = chooseMove(position, { timeMs: 300, maxDepth: 2, multiPv: 5, preferredRootMoves: preferred });
-  assert.equal(result.candidates[0].move, 'b9c7');
+  assert.ok(result.candidates.some(item => item.move === 'b9c7'));
   assert.ok(result.candidates.length >= 5);
   assert.equal(new Set(result.candidates.map(item => item.move)).size, result.candidates.length);
+  assert.ok(result.candidates.every((item, index) => !index || result.candidates[index - 1].score >= item.score));
 });
 
 test('master-book training targets preserve the supported screen-horse choices', () => {

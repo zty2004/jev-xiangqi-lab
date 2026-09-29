@@ -54,6 +54,7 @@ function renderRecommendations() {
   if (!active) return;
   const colors = ['#a74934', '#246a79', '#6657a5', '#9a6b23', '#39714d'];
   const visibleRecommendations = analysis.recommendations.slice(0, Number($('recommendation-count').value));
+  const recommendationSide = analysis.recommendationSide === 'black' ? '黑方' : '红方';
   const sharedTargets = new Map();
   for (const [index, item] of visibleRecommendations.entries()) {
     const target = item.move.slice(2);
@@ -86,7 +87,7 @@ function renderRecommendations() {
     text.textContent = String(index + 1); overlay.append(text);
     const row = document.createElement('li'), title = document.createElement('strong'), detail = document.createElement('span');
     title.textContent = `${index + 1}. ${item.notation}`;
-    detail.textContent = `搜索评分 ${item.score >= 0 ? '+' : ''}${item.score}` +
+    detail.textContent = `搜索评分 ${recommendationSide} ${item.score >= 0 ? '+' : ''}${item.score}` +
       (item.probability === undefined ? '' : ` · 模型 ${(item.probability * 100).toFixed(1)}%`);
     row.append(title, detail);
     if (item.pv?.length > 1) {
