@@ -39,7 +39,7 @@ function view(position, history = []) {
 }
 
 function openingRootMoves(position) {
-  const candidates = masterOpeningCandidates(position, masterBook);
+  const candidates = masterOpeningCandidates(position, masterBook, { maxMoves: 5 });
   return { candidates, allowedRootMoves: candidates.length ? candidates.map(item => item.move) : null };
 }
 
