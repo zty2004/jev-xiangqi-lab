@@ -54,6 +54,8 @@ export function chooseMove(position, options = {}) {
   const allowedRootMoves = options.allowedRootMoves ? new Set(options.allowedRootMoves) : null;
   const restricted = allowedRootMoves ? legalRootMoves.filter(move => allowedRootMoves.has(moveName(move))) : [];
   const rootMoves = restricted.length ? restricted : legalRootMoves;
+  const preferredRootMoves = new Set((options.preferredRootMoves || []).filter(notation =>
+    rootMoves.some(move => moveName(move) === notation)));
   const priors = options.priors || null;
   const evaluator = options.evaluator || null;
   const rootEvalState = evaluator?.createState(position);
@@ -73,10 +75,18 @@ export function chooseMove(position, options = {}) {
   const fullRootScores = Boolean(options.fullRootScores);
   if (!rootMoves.length) return { move: null, depth: 0, score: -MATE, nodes: 0, timeMs: 0, pv: [], phase: profile.phase };
   const multiPv = fullRootScores ? rootMoves.length : Math.max(1, Math.min(rootMoves.length, Number(options.multiPv) || 1));
+  const rootCandidateOrder = (a, b) => Number(preferredRootMoves.has(b.move)) - Number(preferredRootMoves.has(a.move)) || b.score - a.score;
+  const retainRootCandidates = scores => {
+    scores.sort((a, b) => b.score - a.score);
+    if (!preferredRootMoves.size) return scores.slice(0, multiPv);
+    const preferred = scores.filter(item => preferredRootMoves.has(item.move));
+    const standard = scores.filter(item => !preferredRootMoves.has(item.move)).slice(0, Math.max(0, multiPv - preferred.length));
+    return [...preferred, ...standard].sort(rootCandidateOrder);
+  };
   let nodes = 0, pruned = 0, reduced = 0, completed = { move: rootMoves[0], depth: 0, score: staticEvaluate(position, rootEvalState), pv: [moveName(rootMoves[0])], candidates: rootMoves.map(move => {
     const [next, state] = advance(position, move, rootEvalState);
     return { move: moveName(move), score: -staticEvaluate(next, state) };
-  }).sort((a, b) => b.score - a.score).slice(0, 8) };
+  }).sort(rootCandidateOrder).slice(0, 8) };
   const repetition = options.history ? [...options.history] : [];
   let lastProgress = start;
 
@@ -100,6 +110,7 @@ export function chooseMove(position, options = {}) {
   function priority(move, ttMove, ply) {
     const key = moveName(move);
     if (key === ttMove) return 2_000_000;
+    if (ply === 0 && preferredRootMoves.has(key)) return 1_900_000;
     if (ply === 0 && priors) return Math.max(0, Math.min(1, priors.get(key) || 0)) * 1_000_000 +
       (move.captured !== '.' ? 250_000 + VALUES[move.captured.toLowerCase()] * 10 : 0);
     if (move.captured !== '.') return 1_000_000 + VALUES[move.captured.toLowerCase()] * 10 - VALUES[move.piece.toLowerCase()];
@@ -210,14 +221,14 @@ export function chooseMove(position, options = {}) {
         for (const move of ordered(rootMoves, ttMove, 0)) {
           const [next, nextState] = advance(position, move, rootEvalState);
           if (scores.length >= multiPv) {
-            const threshold = scores[multiPv - 1].score;
+            const standard = scores.filter(item => !preferredRootMoves.has(item.move));
+            const threshold = standard.length ? standard.at(-1).score : -INF;
             const probe = -negamax(next, depth - 1, -INF, -threshold, 1, nextState);
             if (probe <= threshold) continue;
           }
           const score = -negamax(next, depth - 1, -INF, INF, 1, nextState);
           scores.push({ move: moveName(move), score, pv: continuation(move, depth) });
-          scores.sort((a, b) => b.score - a.score);
-          scores.length = Math.min(scores.length, multiPv);
+          scores = retainRootCandidates(scores);
         }
       } finally { repetition.pop(); }
       const best = scores[0];

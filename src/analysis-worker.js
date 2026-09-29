@@ -20,6 +20,7 @@ try {
     priors,
     multiPv: workerData.multiPv,
     allowedRootMoves: workerData.allowedRootMoves,
+    preferredRootMoves: workerData.preferredRootMoves,
     evaluator,
     onDepth: partial => publish(partial),
     onProgress: partial => publish(partial)
