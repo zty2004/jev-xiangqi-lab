@@ -132,9 +132,8 @@ function render() {
   $('move-count').textContent = `${snapshots.length ? snapshots.length - 1 : 0} 步`;
   $('undo').disabled = busy || snapshots.length <= (mode === 'teach' ? 1 : human === 'black' ? 2 : 1);
   $('new').disabled = busy; $('mode').disabled = busy; $('side').disabled = busy;
-  $('time').disabled = busy; $('recommendation-count').disabled = busy; $('load').disabled = busy;
+  $('time').disabled = busy; $('recommendation-count').disabled = busy || mode !== 'teach'; $('load').disabled = busy;
   $('side-control').hidden = mode === 'teach';
-  $('recommendation-control').hidden = mode !== 'teach';
   $('recommendations-card').hidden = mode !== 'teach';
   $('time-label').textContent = mode === 'teach' ? '单次搜索上限' : '电脑思考时间';
   const list = $('moves'); list.replaceChildren();
