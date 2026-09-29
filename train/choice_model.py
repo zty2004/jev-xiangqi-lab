@@ -462,6 +462,14 @@ def train(args):
                               batch_size=args.batch, shuffle=sampler is None, sampler=sampler, collate_fn=collate)
     validation_loader = DataLoader(TeacherDataset(validation, input_channels, args.value_head, args.policy_target), batch_size=args.batch, collate_fn=collate)
     model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head, args.value_loss_weight).to(device)
+    if args.init_model:
+        initial = torch.load(args.init_model, map_location=device, weights_only=True)
+        expected = {"channels": args.channels, "blocks": args.blocks, "input_channels": input_channels,
+                    "value_head": args.value_head}
+        actual = {key: initial.get(key) for key in expected}
+        if actual != expected:
+            raise ValueError(f"initial model architecture mismatch: expected {expected}, got {actual}")
+        model.load_state_dict(initial["state_dict"], strict=True)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     print(f"device={device} train={len(training)} validation={len(validation)} calibration={len(calibration)} test={len(test)}", flush=True)
     best_loss = float("inf")
@@ -489,6 +497,8 @@ def train(args):
                         "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
                         "source_weights": source_weights,
+                        "initial_model": ({"file": str(args.init_model), "sha256": sha256_file(args.init_model)}
+                                          if args.init_model else None),
                         "teacher_sources": [{"file": str(filename), "sha256": sha256_file(filename)} for filename in args.data],
                         "history_sha256": sha256_file(args.history_data) if args.history_data else None,
                         "opening_sha256": sha256_file(args.opening_data) if args.opening_data else None,
@@ -568,6 +578,7 @@ def main():
                               help="add a horizontally mirrored copy of every training position")
     train_parser.add_argument("--source-weight", action="append", default=[],
                               help="training-only sampling weight INDEX:WEIGHT for a --data source; repeatable")
+    train_parser.add_argument("--init-model", help="compatible checkpoint used to initialize fine-tuning")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
     train_parser.add_argument("--output", default="choice-model.pt")
     train_parser.add_argument("--epochs", type=int, default=10)
