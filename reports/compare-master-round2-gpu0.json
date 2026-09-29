@@ -1,0 +1,72 @@
+{
+  "purpose": "Master opening policy holdout; same positions for every model",
+  "teacher": [
+    {
+      "file": "data/teacher-openings-5000.jsonl",
+      "sha256": "07389263eed847d86a084380d7283cfd0b4a967684bbcd718536b7fd82517f09"
+    },
+    {
+      "file": "data/teacher-games-160.jsonl",
+      "sha256": "f8752cf60f099002fd23f70a2f6085a7f9a7eefe0e80866ca2927f157d5651d5"
+    }
+  ],
+  "book": {
+    "file": "data/master-opening-positions.jsonl",
+    "sha256": "5ac71411969913823300a5d1a5c76822da27b008c1f52cce4f3bfcdfdafb6feb"
+  },
+  "excluded": [
+    {
+      "file": "data/opening-positions.jsonl",
+      "sha256": "9a5f1ca8c7b461e2a00986ff9803dd8ec2f70693b5e84403e2013c67093aad5c"
+    }
+  ],
+  "seed": 20260923,
+  "openingTrainingSamples": 1500,
+  "availableBookPositions": 1881,
+  "holdoutPositions": 247,
+  "models": [
+    {
+      "model": "models/choice-master-opening-gpu0.pt",
+      "sha256": "f5b08899956b3d6a0e5b36f65b7fb495f85d859e67efc95c210e39475c09452b",
+      "temperature": 0.9170040432046712,
+      "hardBest": {
+        "count": 247,
+        "top1": 0.32388663967611336,
+        "nll": 2.318977941547618,
+        "brier": 0.8055594244949248,
+        "mean_top_probability": 0.2874974969186281,
+        "ece10": 0.04822504411824802
+      },
+      "softPolicyCrossEntropy": 2.3393115637029775
+    },
+    {
+      "model": "models/choice-master-dominant-64x4-gpu0.pt",
+      "sha256": "c68dfe1886f837016888239166a84a81dc40528da8fc4d8f53366b3c4d80b0d7",
+      "temperature": 1.0,
+      "hardBest": {
+        "count": 247,
+        "top1": 0.30364372469635625,
+        "nll": 2.4525490141990494,
+        "brier": 0.8305291905094255,
+        "mean_top_probability": 0.24360495057665868,
+        "ece10": 0.06990241340780065
+      },
+      "softPolicyCrossEntropy": 2.472915430119039
+    },
+    {
+      "model": "models/choice-master-dominant-mirror-64x4-gpu0.pt",
+      "sha256": "6903a58a6bbf92ebd123959fe0662c01c329de42a45bdf7f61d6855d2489c075",
+      "temperature": 1.1387886347566918,
+      "hardBest": {
+        "count": 247,
+        "top1": 0.38461538461538464,
+        "nll": 2.203264574612479,
+        "brier": 0.775024275306748,
+        "mean_top_probability": 0.28013807725206563,
+        "ece10": 0.1073278309664263
+      },
+      "softPolicyCrossEntropy": 2.216045812521446
+    }
+  ],
+  "limitations": "Book frequencies reflect recorded master choices, not move quality or match strength."
+}
