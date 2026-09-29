@@ -33,6 +33,11 @@ class NnueValueTests(unittest.TestCase):
         self.assertEqual(tuple(value.shape), (1,))
         self.assertLessEqual(abs(float(value[0].detach())), 2000)
 
+    def test_residual_dataset_keeps_classical_score_as_its_baseline(self):
+        score = nnue.classical_score(START)
+        sample = nnue.ValueDataset([{"fen": START, "score": score + 37}], residual=True)[0]
+        self.assertAlmostEqual(sample[3], 37)
+
 
 if __name__ == "__main__":
     unittest.main()

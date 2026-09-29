@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader, Dataset
 PIECES = "KABNRCPkabnrcp"
 FEATURES = 9 * len(PIECES) * 90
 MAX_PIECES = 32
+VALUES = {"k": 20000, "r": 1000, "c": 470, "n": 430, "b": 220, "a": 220, "p": 120}
 
 
 def parse_board(fen):
@@ -60,6 +61,26 @@ def teacher_score(row):
     return max(-2000.0, min(2000.0, score))
 
 
+def classical_score(fen):
+    score = 0.0
+    for index, piece in enumerate(parse_board(fen)):
+        if piece == ".":
+            continue
+        red = piece.isupper()
+        y, x = divmod(index, 9)
+        advance = 9 - y if red else y
+        kind = piece.lower()
+        value = VALUES[kind]
+        if kind == "p":
+            value += advance * 9 + (60 + (4 - abs(x - 4)) * 6 if advance >= 5 else 0)
+        if kind == "n":
+            value += (4 - abs(x - 4)) * 8 + (4.5 - abs(y - 4.5)) * 5
+        if kind in ("r", "c"):
+            value += (4 - abs(x - 4)) * 5
+        score += value if red else -value
+    return score if fen.split()[1] == "w" else -score
+
+
 def load_rows(filenames):
     rows = []
     for source, filename in enumerate(filenames):
@@ -88,8 +109,9 @@ def split_rows(rows, seed):
 
 
 class ValueDataset(Dataset):
-    def __init__(self, rows):
+    def __init__(self, rows, residual=False):
         self.rows = rows
+        self.residual = residual
 
     def __len__(self):
         return len(self.rows)
@@ -99,7 +121,8 @@ class ValueDataset(Dataset):
         red = feature_indices(row["fen"], "red")
         black = feature_indices(row["fen"], "black")
         side = 0 if row["fen"].split()[1] == "w" else 1
-        return red, black, side, row["score"]
+        target = row["score"] - classical_score(row["fen"]) if self.residual else row["score"]
+        return red, black, side, target
 
 
 def collate(samples):
@@ -173,10 +196,11 @@ def train(args):
     training, validation = split_rows(rows, args.seed)
     device = select_device(args.device)
     model = NnueValue(args.hidden, args.head, args.output_scale).to(device)
-    train_loader = DataLoader(ValueDataset(training), batch_size=args.batch, shuffle=True, collate_fn=collate)
-    validation_loader = DataLoader(ValueDataset(validation), batch_size=args.batch, collate_fn=collate)
+    train_loader = DataLoader(ValueDataset(training, args.residual), batch_size=args.batch, shuffle=True, collate_fn=collate)
+    validation_loader = DataLoader(ValueDataset(validation, args.residual), batch_size=args.batch, collate_fn=collate)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-5)
     best = None
+    stale = 0
     print(f"device={device} train={len(training)} validation={len(validation)}", flush=True)
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -190,9 +214,16 @@ def train(args):
         print(f"epoch={epoch} mae_cp={result['maeCp']:.2f} rmse_cp={result['rmseCp']:.2f}", flush=True)
         if best is None or result["maeCp"] < best["maeCp"]:
             best = result
+            stale = 0
             torch.save(model.state_dict(), args.checkpoint)
+        else:
+            stale += 1
+            if args.patience and stale >= args.patience:
+                print(f"early_stop={epoch} patience={args.patience}", flush=True)
+                break
     model.load_state_dict(torch.load(args.checkpoint, map_location=device, weights_only=True))
-    export_model(model, args.output, {"validation": best, "teacherFiles": [str(item) for item in args.data], "seed": args.seed})
+    export_model(model, args.output, {"validation": best, "teacherFiles": [str(item) for item in args.data],
+                                     "seed": args.seed, "residual": args.residual})
     print(json.dumps({"output": args.output, "validation": best}), flush=True)
 
 
@@ -205,6 +236,8 @@ def main():
     parser.add_argument("--head", type=int, default=32)
     parser.add_argument("--output-scale", type=int, default=2000)
     parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--patience", type=int, default=0)
+    parser.add_argument("--residual", action="store_true", help="learn teacher score minus the classical evaluator")
     parser.add_argument("--batch", type=int, default=512)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=20260924)

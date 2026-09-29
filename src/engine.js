@@ -62,7 +62,8 @@ export function chooseMove(position, options = {}) {
     if (!pos.board.includes(pos.side === 'red' ? 'k' : 'K')) return MATE;
     const classical = evaluate(pos);
     if (!evaluator) return classical;
-    const neural = evaluator.evaluate(pos, state);
+    const prediction = evaluator.evaluate(pos, state);
+    const neural = evaluator.model?.residual ? classical + prediction : prediction;
     return Math.round(neural * profile.neuralWeight + classical * (1 - profile.neuralWeight));
   };
   const advance = (pos, move, state) => {

@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 
 import nnue_value
 
-VALUES = {"k": 20000, "r": 1000, "c": 470, "n": 430, "b": 220, "a": 220, "p": 120}
 PHASE_UNITS = {"r": 4, "c": 2, "n": 2, "b": 1, "a": 1, "p": 0, "k": 0}
 
 
@@ -20,27 +19,6 @@ def sha256_file(filename):
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def classical_score(fen):
-    board = nnue_value.parse_board(fen)
-    score = 0.0
-    for index, piece in enumerate(board):
-        if piece == ".":
-            continue
-        red = piece.isupper()
-        y, x = divmod(index, 9)
-        advance = 9 - y if red else y
-        kind = piece.lower()
-        value = VALUES[kind]
-        if kind == "p":
-            value += advance * 9 + (60 + (4 - abs(x - 4)) * 6 if advance >= 5 else 0)
-        if kind == "n":
-            value += (4 - abs(x - 4)) * 8 + (4.5 - abs(y - 4.5)) * 5
-        if kind in ("r", "c"):
-            value += (4 - abs(x - 4)) * 5
-        score += value if red else -value
-    return score if fen.split()[1] == "w" else -score
 
 
 def phase(fen):
@@ -69,6 +47,7 @@ def main():
     parser.add_argument("--batch", type=int, default=1024)
     parser.add_argument("--seed", type=int, default=20260924)
     parser.add_argument("--output-scale", type=int, default=2000)
+    parser.add_argument("--residual", action="store_true")
     parser.add_argument("--device", default="auto")
     args = parser.parse_args()
     rows = nnue_value.load_rows(args.data)
@@ -85,10 +64,13 @@ def main():
         for indices, mask, side, _ in loader:
             neural.extend(model(indices.to(device), mask.to(device), side.to(device)).cpu().tolist())
     targets = [row["score"] for row in validation]
-    classical = [classical_score(row["fen"]) for row in validation]
+    classical = [nnue_value.classical_score(row["fen"]) for row in validation]
+    if args.residual:
+        neural = [base + correction for base, correction in zip(classical, neural)]
     phases = [phase(row["fen"]) for row in validation]
     report = {"schema": "value-evaluator-comparison-v1", "seed": args.seed,
-              "model": {"file": args.model, "sha256": sha256_file(args.model), "hidden": hidden, "head": head},
+              "model": {"file": args.model, "sha256": sha256_file(args.model), "hidden": hidden, "head": head,
+                        "residual": args.residual},
               "data": [{"file": filename, "sha256": sha256_file(filename)} for filename in args.data],
               "overall": {"classical": metrics(classical, targets), "nnue": metrics(neural, targets)}, "phases": {}}
     for name in ("opening", "middlegame", "endgame"):
