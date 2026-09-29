@@ -1,6 +1,6 @@
 {
-  "model": "choice-master-dominant-mirror-64x4-gpu0.pt",
-  "sha256": "6903a58a6bbf92ebd123959fe0662c01c329de42a45bdf7f61d6855d2489c075",
+  "model": "choice-selfplay-round1-finetune-gpu0.pt",
+  "sha256": "4542669dabdc0b97ba83811287e6ad43d73b4bbc83d0910ef12755739fbc834d",
   "promotedAt": "2026-09-29",
-  "reason": "Improved both the independent teacher holdout and master-opening holdout versus the previous production model."
+  "reason": "Low-rate fine-tuning on search distributions improved both the independent teacher holdout and master-opening holdout versus the previous production model."
 }

@@ -1,0 +1,35 @@
+{
+  "candidate": {
+    "model": "models/choice-selfplay-round1-finetune-gpu0.pt",
+    "sha256": "4542669dabdc0b97ba83811287e6ad43d73b4bbc83d0910ef12755739fbc834d",
+    "initializedFrom": "models/choice-master-dominant-mirror-64x4-gpu0.pt",
+    "learningRate": 0.0001,
+    "selfplaySourceWeight": 0.1
+  },
+  "selfplayData": {
+    "games": 64,
+    "positions": 6805,
+    "terminalGames": 44,
+    "censoredGames": 20,
+    "gamesSha256": "da780f31034d26de3a7165991ebb3d8eae957f568a7de744342f6ae7487c01d2",
+    "positionsSha256": "662753d128b95914ecb0d5d25a52de4fd4fe39907bd56b141543819393ceb452"
+  },
+  "independentTeacherHoldout": {
+    "positions": 2073,
+    "baseline": {"top1": 0.35118186203569707, "nll": 2.317098266556702},
+    "candidate": {"top1": 0.417269657501206, "nll": 2.0725384129293483}
+  },
+  "masterOpeningHoldout": {
+    "positions": 233,
+    "baseline": {"top1": 0.40772532188841204, "softPolicyCrossEntropy": 2.0700428647413225},
+    "candidate": {"top1": 0.4678111587982833, "softPolicyCrossEntropy": 1.6947550139770102}
+  },
+  "selfplayHoldout": {
+    "positions": 742,
+    "baseline": {"top1": 0.2358490566037736, "nll": 2.802196321138387},
+    "candidate": {"top1": 0.22371967654986524, "nll": 2.784546846473693}
+  },
+  "decision": "promote",
+  "reason": "The candidate materially improves both independent teacher and master-opening holdouts. Self-play top-1 is slightly lower while its NLL improves, so self-play agreement alone is not used as the promotion gate.",
+  "limitations": "This is an offline policy benchmark, not evidence of a rating gain or superiority over Pikafish. A paired time-control match remains required."
+}

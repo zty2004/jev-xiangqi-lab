@@ -137,6 +137,8 @@ python3 train/choice_model.py train --data data/teacher-openings-5000.jsonl --op
 
 GPU 0 上完成一组同配置对照：新模型加入其中 1,500 个大师开局训练局面，对照模型只使用相同教师数据。排除训练数据、教师数据和旧开局数据后，247 个开局留出局面的常见招匹配率从对照的 26.72% 升至 32.39%，对大师走法分布的交叉熵从 2.768 降至 2.339；旧网页模型在同一留出集为 27.53% 和 2.710。教师留出集的最佳招命中率也从旧模型的 20.33% 升至 23.55%，NLL 从 2.889 降至 2.786。另在训练集中查看中炮第一应手，新模型首选从对照的“炮８平５”变为“马８进７”；该例本身不作为泛化证据。[训练报告](reports/choice-master-opening-gpu0.json)与[三模型对照](reports/compare-master-opening-gpu0.json)保留权重哈希、数据划分和指标。按“独立指标优于正式模型即可晋级”的规则，该权重已写入 `models/current.json`，成为网页和 UCI 默认模型。
 
+首轮正式自对弈生成 64 局、6,805 个训练局面。直接从零混合训练会损害教师留出集和开局能力，因此未晋级；改为从正式权重以 `1e-4` 学习率微调，并把自对弈源采样权重限制为 `0.10`。在相同独立教师留出集上，最佳招命中率从 35.12% 提高到 41.73%，NLL 从 2.317 降到 2.073；在 233 个大师开局留出局面上，命中率从 40.77% 提高到 46.78%，软分布交叉熵从 2.070 降到 1.695。该权重已晋级为默认模型，完整哈希、数据与限制见[晋级报告](reports/selfplay-round1-promotion.json)。
+
 首次每步 5 秒实战验证的[原始记录](benchmark-choice-master-opening-5s-interrupted.jsonl)中，候选执红一局在 86 个半回合后被将死；执黑一局在第 17 个半回合后因引擎响应超时而中断。中文棋谱与有效成绩见[重放报告](reports/benchmark-choice-master-opening-interrupted.json)；第二局的运行故障不计为负局，尚不能据此比较模型棋力。
 
 补跑黑方局后，大师开局模型的有效红黑成绩为 0 胜 0 和 2 负，对局长度为 86、67 个半回合；旧网页模型在相同引擎、开局库、Pikafish 文件和每步 5 秒下也是 0 胜 0 和 2 负，对局长度为 74、75。两局烟雾测试不足以估计等级分差，也不再作为必须击败 Pikafish 的晋级门槛；它只用于排除明显退化和验证对局流程。[同条件对照报告](reports/compare-choice-master-opening-matches.json)保存双方模型哈希与共同设置。
@@ -168,6 +170,13 @@ npm run selfplay -- --games 20 --movetime 100 --maxplies 160 \
 ```
 
 固定 `--seed` 可复现开局顺序和随机采样；限时搜索可能因机器调度在相邻深度间变化。需要严格固定搜索深度时可增加 `--depth 5`，同时给 `--movetime` 留出足够的硬超时时间。达到步数上限的对局标为 `censored`，不能当作和棋胜负标签；自然终局才可用于价值训练。正式生成大数据时使用 GPU 0 运行走法模型，搜索本身仍由 CPU 执行。
+
+首轮正式数据可直接复核：
+
+```sh
+node verify-games.js data/selfplay-round1-games.jsonl data/selfplay-round1-positions.jsonl
+bash train/run_gpu_selfplay_finetune.sh
+```
 
 训练分成两步：先用已许可的棋谱或自对弈局面采样，用 Pikafish 为候选招生成教师评分，监督训练本地走法模型；再通过自对弈强化学习优化胜率。模型始终输出当前局面的全部合法走法分布。模型概率用于指导自研搜索，最终由搜索分数选择走法。
 
