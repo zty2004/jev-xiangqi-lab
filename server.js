@@ -38,6 +38,11 @@ function view(position, history = []) {
     result: gameResult(position, history) };
 }
 
+function openingRootMoves(position) {
+  const candidates = masterOpeningCandidates(position, masterBook);
+  return { candidates, allowedRootMoves: candidates.length ? candidates.map(item => item.move) : null };
+}
+
 function startAnalysisWorker(position, history, timeMs, multiPv, allowedRootMoves, priors) {
   return new Worker(new URL('./src/analysis-worker.js', import.meta.url), { workerData: {
     fen: toFen(position), history: history.slice(0, -1), timeMs, multiPv, allowedRootMoves,
@@ -74,7 +79,8 @@ async function streamAnalysis(response, position, history, timeMs, count) {
   const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(5000, timeMs), history) : null;
   const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
   response.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' });
-  const worker = startAnalysisWorker(position, history, timeMs, count, null, priors);
+  const { allowedRootMoves } = openingRootMoves(position);
+  const worker = startAnalysisWorker(position, history, timeMs, count, allowedRootMoves, priors);
   let closed = false, latest = null;
   const refresh = setInterval(() => {
     if (!closed && latest) response.write(JSON.stringify({ kind: 'progress', ...analysisView(position, latest, priors, count) }) + '\n');
@@ -122,9 +128,9 @@ const server = http.createServer(async (request, response) => {
       const data = await body(request), position = parseFen(data.fen), history = data.history || [];
       if (gameResult(position, history)) return json(response, 400, { error: '棋局已经结束' });
       const timeMs = Math.min(30_000, Math.max(100, Number(data.timeMs) || 1000));
-      const bookMoves = masterOpeningCandidates(position, masterBook);
+      const { candidates: bookMoves, allowedRootMoves } = openingRootMoves(position);
       const { analysis, ranking, priors } = await analyzePosition(position, history, timeMs, 1,
-        bookMoves.length ? bookMoves.map(item => item.move) : null);
+        allowedRootMoves);
       if (!analysis.move) return json(response, 400, { error: '无合法走法' });
       const selectedNotation = analysis.move, moveChinese = formatChineseMove(position, selectedNotation);
       const choice = ranking ? { selected: selectedNotation, probability: priors.get(selectedNotation) || 0,
@@ -145,7 +151,8 @@ const server = http.createServer(async (request, response) => {
       if (gameResult(position, history)) return json(response, 200, { recommendations: [], depth: 0, nodes: 0, timeMs: 0 });
       const timeMs = Math.min(30_000, Math.max(100, Number(data.timeMs) || 1000));
       const count = Math.min(5, Math.max(1, Math.trunc(Number(data.count) || 3)));
-      const { analysis, priors } = await analyzePosition(position, history, timeMs, count);
+      const { allowedRootMoves } = openingRootMoves(position);
+      const { analysis, priors } = await analyzePosition(position, history, timeMs, count, allowedRootMoves);
       json(response, 200, analysisView(position, analysis, priors, count));
     } else if (request.method === 'POST' && url.pathname === '/api/analyze-stream') {
       const data = await body(request), position = parseFen(data.fen), history = data.history || [];
