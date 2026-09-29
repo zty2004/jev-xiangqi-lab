@@ -1,0 +1,6 @@
+{
+  "model": "value-nnue-residual-32x16-gpu.json",
+  "sha256": "ff170402e60f6e346be7e9dae0d5178385f158f4c674e7684658ba0ed25ca5dd",
+  "promotedAt": "2026-09-29",
+  "reason": "Reduced held-out teacher-score MAE from 252 cp to 191 cp across all phases; paired time-control smoke match tied 2-2 in completed games."
+}

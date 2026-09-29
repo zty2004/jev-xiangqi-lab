@@ -1,0 +1,33 @@
+{
+  "schema": "value-model-promotion-v1",
+  "candidate": "models/value-nnue-residual-32x16-gpu.json",
+  "candidateSha256": "ff170402e60f6e346be7e9dae0d5178385f158f4c674e7684658ba0ed25ca5dd",
+  "checkpoint": "models/value-nnue-residual-32x16-gpu.pt",
+  "teacherHoldout": {
+    "positions": 2109,
+    "classicalMaeCp": 252.11190137505926,
+    "candidateMaeCp": 190.82165516745485,
+    "classicalRmseCp": 353.3501776315427,
+    "candidateRmseCp": 288.8070942877225
+  },
+  "oneSecondMiddlegameSpeed": {
+    "classicalDepthRange": [5, 6],
+    "candidateDepthRange": [5, 5],
+    "classicalNodeRange": [167936, 195584],
+    "candidateNodeRange": [138240, 161792]
+  },
+  "pairedMatch": {
+    "file": "benchmark-value-residual-32x16-100ms.jsonl",
+    "games": 8,
+    "completed": 4,
+    "candidateWins": 2,
+    "candidateLosses": 2,
+    "draws": 0,
+    "censored": 4,
+    "candidateScoreRateCompleted": 0.5,
+    "moveTimeMs": 100,
+    "maxPlies": 120
+  },
+  "decision": "promoted",
+  "limitations": "The match is only a smoke test; promotion is primarily supported by the disjoint teacher-score holdout and absence of an observed match regression."
+}

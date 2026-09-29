@@ -1,0 +1,75 @@
+{
+  "schema": "value-evaluator-comparison-v1",
+  "seed": 20260924,
+  "model": {
+    "file": "models/value-nnue-residual-128-gpu.pt",
+    "sha256": "46ca405626a95d71058ca2459578d72993d9eb54cec8b7697fa6e3ced0ab1116",
+    "hidden": 128,
+    "head": 32,
+    "residual": true
+  },
+  "data": [
+    {
+      "file": "data/teacher-openings-5000.jsonl",
+      "sha256": "07389263eed847d86a084380d7283cfd0b4a967684bbcd718536b7fd82517f09"
+    },
+    {
+      "file": "data/teacher-games-160.jsonl",
+      "sha256": "f8752cf60f099002fd23f70a2f6085a7f9a7eefe0e80866ca2927f157d5651d5"
+    },
+    {
+      "file": "data/teacher-ccpd-competition-1200.jsonl",
+      "sha256": "f784197a4c6fc0b618d9a7bb4f907788d3d069da52cabfbfeeb69a30ed5d4220"
+    }
+  ],
+  "overall": {
+    "classical": {
+      "positions": 2109,
+      "maeCp": 252.11190137505926,
+      "rmseCp": 353.3501776315427
+    },
+    "nnue": {
+      "positions": 2109,
+      "maeCp": 182.53661026124877,
+      "rmseCp": 287.9775803535384
+    }
+  },
+  "phases": {
+    "opening": {
+      "classical": {
+        "positions": 295,
+        "maeCp": 108.16949152542372,
+        "rmseCp": 199.1552328703944
+      },
+      "nnue": {
+        "positions": 295,
+        "maeCp": 66.6567036424653,
+        "rmseCp": 105.66618196936759
+      }
+    },
+    "middlegame": {
+      "classical": {
+        "positions": 1633,
+        "maeCp": 273.254133496632,
+        "rmseCp": 373.04116523705625
+      },
+      "nnue": {
+        "positions": 1633,
+        "maeCp": 197.28006709983433,
+        "rmseCp": 306.599612801305
+      }
+    },
+    "endgame": {
+      "classical": {
+        "positions": 181,
+        "maeCp": 295.96685082872926,
+        "rmseCp": 366.9623100763545
+      },
+      "nnue": {
+        "positions": 181,
+        "maeCp": 238.38471763766273,
+        "rmseCp": 316.2317876926844
+      }
+    }
+  }
+}

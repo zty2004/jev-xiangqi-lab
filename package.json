@@ -6,6 +6,7 @@
     "start": "node server.js",
     "test": "node --test",
     "benchmark": "node benchmark.js",
+    "match:evaluator": "node evaluator-match.js",
     "selfplay": "node selfplay.js"
   },
   "engines": { "node": ">=20" }
