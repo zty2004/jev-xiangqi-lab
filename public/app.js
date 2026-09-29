@@ -53,8 +53,9 @@ function renderRecommendations() {
     `${score >= 0 ? '红方 +' : '黑方 +'}${Math.abs(score)}` : '等待第一层搜索';
   if (!active) return;
   const colors = ['#a74934', '#246a79', '#6657a5', '#9a6b23', '#39714d'];
+  const visibleRecommendations = analysis.recommendations.slice(0, Number($('recommendation-count').value));
   const sharedTargets = new Map();
-  for (const [index, item] of analysis.recommendations.entries()) {
+  for (const [index, item] of visibleRecommendations.entries()) {
     const target = item.move.slice(2);
     if (!sharedTargets.has(target)) sharedTargets.set(target, []);
     sharedTargets.get(target).push(index);
@@ -64,7 +65,7 @@ function renderRecommendations() {
     for (const [key, value] of Object.entries(attrs)) element.setAttribute(key, String(value));
     return element;
   };
-  for (const [index, item] of analysis.recommendations.entries()) {
+  for (const [index, item] of visibleRecommendations.entries()) {
     const source = point(item.move.slice(0, 2)), target = point(item.move.slice(2));
     const dx = target.x - source.x, dy = target.y - source.y, length = Math.hypot(dx, dy);
     if (length) {
@@ -194,7 +195,7 @@ async function analyzeCurrent() {
   analysisController = new AbortController();
   analysisBusy = true; analysis = null; render();
   try {
-    await streamAnalysis({ fen, history: state.history, timeMs: Number($('time').value), count: Number($('recommendation-count').value) },
+    await streamAnalysis({ fen, history: state.history, timeMs: Number($('time').value), count: 5 },
       result => {
         if (generation === analysisGeneration && mode === 'teach' && state?.fen === fen) {
           analysis = { fen, ...result };
@@ -244,6 +245,6 @@ $('new').onclick = newGame; $('undo').onclick = undo; $('load').onclick = loadFe
 $('side').onchange = () => { $('orientation').value = $('side').value; newGame(); };
 $('mode').onchange = newGame;
 $('orientation').onchange = render;
-$('recommendation-count').onchange = analyzeCurrent;
+$('recommendation-count').onchange = render;
 $('time').onchange = () => { if (mode === 'teach') void analyzeCurrent(); };
 newGame();
