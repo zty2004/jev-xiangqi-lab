@@ -38,19 +38,59 @@ function view(position, history = []) {
     result: gameResult(position, history) };
 }
 
+function startAnalysisWorker(position, history, timeMs, multiPv, allowedRootMoves, priors) {
+  return new Worker(new URL('./src/analysis-worker.js', import.meta.url), { workerData: {
+    fen: toFen(position), history: history.slice(0, -1), timeMs, multiPv, allowedRootMoves,
+    priors: priors ? [...priors] : null, nnueModel
+  } });
+}
+
+function analysisView(position, analysis, priors, count) {
+  return { recommendations: analysis.candidates.slice(0, count).map(item => ({
+    move: item.move, notation: formatChineseMove(position, item.move), score: item.score,
+    pv: item.pv || [item.move], pvNotation: formatChineseLine(position, item.pv || [item.move]),
+    ...(priors ? { probability: priors.get(item.move) || 0 } : {})
+  })), phase: analysis.phase, depth: analysis.depth, nodes: analysis.nodes,
+  pruned: analysis.pruned, reduced: analysis.reduced, timeMs: analysis.timeMs };
+}
+
 async function analyzePosition(position, history, timeMs, multiPv = 1, allowedRootMoves = null) {
   const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(5000, timeMs), history) : null;
   const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
   const analysis = await new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./src/analysis-worker.js', import.meta.url), { workerData: {
-      fen: toFen(position), history: history.slice(0, -1), timeMs, multiPv, allowedRootMoves,
-      priors: priors ? [...priors] : null, nnueModel
-    } });
-    worker.once('message', message => message.error ? reject(new Error(message.error)) : resolve(message));
+    const worker = startAnalysisWorker(position, history, timeMs, multiPv, allowedRootMoves, priors);
+    worker.on('message', message => {
+      if (message.error) reject(new Error(message.error));
+      else if (message.kind === 'final') resolve(message.analysis);
+    });
     worker.once('error', reject);
     worker.once('exit', code => { if (code !== 0) reject(new Error(`Analysis worker exited with ${code}`)); });
   });
   return { analysis, ranking, priors };
+}
+
+async function streamAnalysis(response, position, history, timeMs, count) {
+  const ranking = localChoice ? await localChoice.rank(toFen(position), legalMoves(position).map(moveName), Math.max(5000, timeMs), history) : null;
+  const priors = ranking ? new Map(ranking.choices.map(item => [item.move, item.probability])) : null;
+  response.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' });
+  const worker = startAnalysisWorker(position, history, timeMs, count, null, priors);
+  let closed = false, latest = null;
+  const refresh = setInterval(() => {
+    if (!closed && latest) response.write(JSON.stringify({ kind: 'progress', ...analysisView(position, latest, priors, count) }) + '\n');
+  }, 1000);
+  response.on('close', () => { closed = true; clearInterval(refresh); worker.terminate(); });
+  await new Promise((resolve, reject) => {
+    worker.on('message', message => {
+      if (message.error) { reject(new Error(message.error)); return; }
+      latest = message.analysis;
+      if (!closed) response.write(JSON.stringify({ kind: message.kind, ...analysisView(position, latest, priors, count) }) + '\n');
+      if (message.kind === 'final') resolve();
+    });
+    worker.once('error', reject);
+    worker.once('exit', code => { if (code !== 0 && !closed) reject(new Error(`Analysis worker exited with ${code}`)); });
+  });
+  clearInterval(refresh);
+  if (!closed) response.end();
 }
 
 const server = http.createServer(async (request, response) => {
@@ -86,7 +126,7 @@ const server = http.createServer(async (request, response) => {
         bookMoves.length ? bookMoves.map(item => item.move) : null);
       if (!analysis.move) return json(response, 400, { error: '无合法走法' });
       const selectedNotation = analysis.move, moveChinese = formatChineseMove(position, selectedNotation);
-      const choice = ranking ? { selected: moveName(chosen), probability: priors.get(moveName(chosen)) || 0,
+      const choice = ranking ? { selected: selectedNotation, probability: priors.get(selectedNotation) || 0,
         rankedMoves: ranking.choices.length } : null;
       const bookEntry = bookMoves.find(item => item.move === selectedNotation);
       const opening = bookEntry ? { source: masterBook.source, sourceUrl: masterBook.sourceUrl,
@@ -105,12 +145,13 @@ const server = http.createServer(async (request, response) => {
       const timeMs = Math.min(30_000, Math.max(100, Number(data.timeMs) || 1000));
       const count = Math.min(5, Math.max(1, Math.trunc(Number(data.count) || 3)));
       const { analysis, priors } = await analyzePosition(position, history, timeMs, count);
-      json(response, 200, { recommendations: analysis.candidates.slice(0, count).map(item => ({
-        move: item.move, notation: formatChineseMove(position, item.move), score: item.score,
-        pv: item.pv || [item.move], pvNotation: formatChineseLine(position, item.pv || [item.move]),
-        ...(priors ? { probability: priors.get(item.move) || 0 } : {}) })),
-        phase: analysis.phase, depth: analysis.depth, nodes: analysis.nodes,
-        pruned: analysis.pruned, reduced: analysis.reduced, timeMs: analysis.timeMs });
+      json(response, 200, analysisView(position, analysis, priors, count));
+    } else if (request.method === 'POST' && url.pathname === '/api/analyze-stream') {
+      const data = await body(request), position = parseFen(data.fen), history = data.history || [];
+      if (gameResult(position, history)) return json(response, 200, { kind: 'final', recommendations: [], depth: 0, nodes: 0, timeMs: 0 });
+      const timeMs = Math.min(30_000, Math.max(100, Number(data.timeMs) || 1000));
+      const count = Math.min(5, Math.max(1, Math.trunc(Number(data.count) || 3)));
+      await streamAnalysis(response, position, history, timeMs, count);
     } else json(response, 404, { error: 'Not found' });
   } catch (error) {
     json(response, 400, { error: error.message });

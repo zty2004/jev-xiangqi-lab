@@ -12,6 +12,26 @@ async function api(path, payload, signal = undefined) {
   return data;
 }
 
+async function streamAnalysis(payload, onUpdate, signal) {
+  const response = await fetch('/api/analyze-stream', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload), signal });
+  if (!response.ok || !response.body) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || '分析请求失败');
+  }
+  const reader = response.body.getReader(), decoder = new TextDecoder();
+  let pending = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    pending += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const lines = pending.split('\n');
+    pending = lines.pop();
+    for (const line of lines) if (line) onUpdate(JSON.parse(line));
+    if (done) break;
+  }
+  if (pending.trim()) onUpdate(JSON.parse(pending));
+}
+
 function squareName(index) { return files[index % 9] + (9 - Math.floor(index / 9)); }
 function sideOf(piece) { return piece === '.' ? null : piece === piece.toUpperCase() ? 'red' : 'black'; }
 function displayIndex(index) { return $('orientation').value === 'black' ? 89 - index : index; }
@@ -103,7 +123,7 @@ function render() {
   $('side-control').hidden = mode === 'teach';
   $('recommendation-control').hidden = mode !== 'teach';
   $('recommendations-card').hidden = mode !== 'teach';
-  $('time-label').textContent = mode === 'teach' ? '推荐分析时间' : '电脑思考时间';
+  $('time-label').textContent = mode === 'teach' ? '单次搜索上限' : '电脑思考时间';
   const list = $('moves'); list.replaceChildren();
   for (let i = 1; i < snapshots.length; i++) {
     const li = document.createElement('li'), count = document.createElement('span');
@@ -162,9 +182,13 @@ async function analyzeCurrent() {
   analysisController = new AbortController();
   analysisBusy = true; analysis = null; render();
   try {
-    const result = await api('/api/analyze', { fen, history: state.history,
-      timeMs: Number($('time').value), count: Number($('recommendation-count').value) }, analysisController.signal);
-    if (generation === analysisGeneration && mode === 'teach' && state?.fen === fen) analysis = { fen, ...result };
+    await streamAnalysis({ fen, history: state.history, timeMs: Number($('time').value), count: Number($('recommendation-count').value) },
+      result => {
+        if (generation === analysisGeneration && mode === 'teach' && state?.fen === fen) {
+          analysis = { fen, ...result };
+          render();
+        }
+      }, analysisController.signal);
   } catch (error) {
     if (error.name !== 'AbortError') alert(error.message);
   } finally {

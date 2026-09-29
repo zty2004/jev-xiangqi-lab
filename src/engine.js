@@ -78,9 +78,21 @@ export function chooseMove(position, options = {}) {
     return { move: moveName(move), score: -staticEvaluate(next, state) };
   }).sort((a, b) => b.score - a.score).slice(0, 8) };
   const repetition = options.history ? [...options.history] : [];
+  let lastProgress = start;
+
+  function snapshot() {
+    return { move: moveName(completed.move), depth: completed.depth, score: completed.score,
+      pv: completed.pv, candidates: completed.candidates, nodes, pruned, reduced,
+      phase: profile.phase, timeMs: Math.round(performance.now() - start) };
+  }
 
   function checkTime() {
-    if ((nodes & 1023) === 0 && performance.now() >= deadline) throw new Stopped();
+    const now = performance.now();
+    if (options.onProgress && now - lastProgress >= 1000) {
+      lastProgress = now;
+      options.onProgress(snapshot());
+    }
+    if (now >= deadline) throw new Stopped();
   }
   function ordered(moves, ttMove, ply) {
     return moves.sort((a, b) => priority(b, ttMove, ply) - priority(a, ttMove, ply));
@@ -212,6 +224,7 @@ export function chooseMove(position, options = {}) {
       completed = { move: rootMoves.find(move => moveName(move) === best.move), depth,
         score: best.score, pv: best.pv, candidates: scores.slice(0, fullRootScores ? rootMoves.length : 8) };
       table.set(rootKey, { depth, score: best.score, move: best.move, flag: 'exact' });
+      options.onDepth?.(snapshot());
     } catch (error) {
       if (!(error instanceof Stopped)) throw error;
       break;
