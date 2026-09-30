@@ -30,7 +30,7 @@ train_candidate() {
     --data "$teacher" --policy-target dominant --value-loss-weight 0.1 \
     --mirror-augmentation --selection-metric top1 --policy-features "$features" \
     --channels "$channels" --blocks "$blocks" --epochs 40 --patience 10 \
-    --lr-patience 2 --min-lr 0.000001 --batch "$batch" --lr "$lr" \
+    --lr-patience 2 --min-lr 0.000001 --batch "$batch" --loader-workers 8 --lr "$lr" \
     --seed 20261001 --device cuda "${init_args[@]}" --output "models/${name}.pt"
 
   CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \

@@ -514,9 +514,14 @@ def train(args):
     sampler = (WeightedRandomSampler(sample_weights, len(sample_weights), replacement=True,
                                      generator=torch.Generator().manual_seed(args.seed)) if sample_weights else None)
     train_dataset = TeacherDataset(training, input_channels, args.value_head, args.policy_target, args.mirror_augmentation)
-    train_loader = DataLoader(train_dataset,
-                              batch_size=args.batch, shuffle=sampler is None, sampler=sampler, collate_fn=collate)
-    validation_loader = DataLoader(TeacherDataset(validation, input_channels, args.value_head, args.policy_target), batch_size=args.batch, collate_fn=collate)
+    loader_options = {"num_workers": args.loader_workers, "pin_memory": device.type == "cuda"}
+    if args.loader_workers:
+        loader_options["persistent_workers"] = True
+        loader_options["prefetch_factor"] = 2
+    train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=sampler is None,
+                              sampler=sampler, collate_fn=collate, **loader_options)
+    validation_loader = DataLoader(TeacherDataset(validation, input_channels, args.value_head, args.policy_target),
+                                   batch_size=args.batch, collate_fn=collate, **loader_options)
     model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head, args.value_loss_weight,
                       args.policy_features).to(device)
     if args.init_model:
@@ -574,7 +579,8 @@ def train(args):
                         "opening_sha256": sha256_file(args.opening_data) if args.opening_data else None,
                         "split_sizes": {"train": len(training), "validation": len(validation),
                                         "calibration": len(calibration), "test": len(test)},
-                        "effective_training_examples": len(train_dataset)}, args.output)
+                        "effective_training_examples": len(train_dataset),
+                        "loader_workers": args.loader_workers}, args.output)
         else:
             stale_epochs += 1
             if args.patience and stale_epochs >= args.patience:
@@ -679,6 +685,8 @@ def main():
     train_parser.add_argument("--output", default="choice-model.pt")
     train_parser.add_argument("--epochs", type=int, default=10)
     train_parser.add_argument("--batch", type=int, default=128)
+    train_parser.add_argument("--loader-workers", type=int, default=0,
+                              help="parallel data-encoding workers; use 0 for in-process loading")
     train_parser.add_argument("--lr", type=float, default=1e-3)
     train_parser.add_argument("--lr-patience", type=int, default=0,
                               help="halve learning rate after this many validation plateaus; 0 disables")
@@ -715,6 +723,8 @@ def main():
             raise ValueError("value loss weight must be between 0 and 1")
         if args.lr_patience < 0 or args.min_lr <= 0 or args.min_lr > args.lr:
             raise ValueError("learning-rate schedule must have nonnegative patience and 0 < min-lr <= lr")
+        if args.loader_workers < 0:
+            raise ValueError("loader-workers must be nonnegative")
         train(args)
     else:
         device = select_device(args.device)
