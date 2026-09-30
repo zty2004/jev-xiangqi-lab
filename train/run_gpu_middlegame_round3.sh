@@ -30,13 +30,20 @@ CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 -u train/choice_model.py train \
   --output "models/${name}.pt"
 
 CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \
-  --model "models/${name}.pt" --data "$teacher" --phase middlegame --device cuda \
+  --model "models/${name}.pt" \
+  --data data/teacher-openings-5000.jsonl --data data/teacher-games-160.jsonl \
+  --data data/teacher-ccpd-competition-1200.jsonl --data "$teacher" \
+  --test-source-index 3 --phase middlegame --device cuda \
   > "reports/${name}-new-teacher.json"
 CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \
   --model "models/${name}.pt" \
   --data data/teacher-openings-5000.jsonl --data data/teacher-games-160.jsonl \
-  --data data/teacher-ccpd-competition-1200.jsonl \
+  --data data/teacher-ccpd-competition-1200.jsonl --data "$teacher" \
+  --test-source-index 0 --test-source-index 1 --test-source-index 2 \
   --phase middlegame --device cuda > "reports/${name}-independent.json"
 CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/compare_choice_models.py \
-  --model-a "$base" --model-b "models/${name}.pt" --data "$teacher" \
-  --phase middlegame --device cuda > "reports/compare-${name}-new-teacher.json"
+  --model-a "$base" --model-b "models/${name}.pt" \
+  --data data/teacher-openings-5000.jsonl --data data/teacher-games-160.jsonl \
+  --data data/teacher-ccpd-competition-1200.jsonl --data "$teacher" \
+  --test-source-index 3 --phase middlegame --device cuda \
+  > "reports/compare-${name}-new-teacher.json"

@@ -640,6 +640,8 @@ def main():
     evaluate_parser.add_argument("--history-data", help="history labels for the final teacher file")
     evaluate_parser.add_argument("--phase", choices=["opening", "middlegame", "endgame"],
                                  help="report only this phase from the fixed held-out split")
+    evaluate_parser.add_argument("--test-source-index", type=int, action="append",
+                                 help="report only these --data sources after making the shared split; repeatable")
     args = parser.parse_args()
     if args.command == "train":
         if not 0 <= args.value_loss_weight <= 1:
@@ -651,6 +653,11 @@ def main():
         if args.command == "evaluate":
             rows = load_teacher_sources(args.data, args.history_data)
             _, _, _, test = split_rows(rows, args.seed)
+            if args.test_source_index:
+                if any(index < 0 or index >= len(args.data) for index in args.test_source_index):
+                    raise ValueError("test source index is outside the teacher sources")
+                selected_sources = set(args.test_source_index)
+                test = [row for row in test if source_index(row) in selected_sources]
             if args.phase:
                 test = [row for row in test if game_phase(row["fen"]) == args.phase]
             if args.exclude_data:
