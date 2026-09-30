@@ -22,7 +22,8 @@ def sha256_file(filename: str) -> str:
     return digest.hexdigest()
 
 
-def load_openings(filename: str, count: int, plies: int, seed: int) -> list[list[str]]:
+def load_openings(filename: str, count: int, plies: int, seed: int,
+                  offset: int = 0) -> list[list[str]]:
     rows = []
     with open(filename, encoding="utf-8") as handle:
         for line in handle:
@@ -34,9 +35,9 @@ def load_openings(filename: str, count: int, plies: int, seed: int) -> list[list
                 rows.append(item["opening"][:plies])
     unique = list(dict.fromkeys(tuple(row) for row in rows))
     random.Random(seed).shuffle(unique)
-    if len(unique) < count:
-        raise ValueError(f"only {len(unique)} distinct openings, need {count}")
-    return [list(row) for row in unique[:count]]
+    if len(unique) < count + offset:
+        raise ValueError(f"only {len(unique)} distinct openings, need {count + offset}")
+    return [list(row) for row in unique[offset:offset + count]]
 
 
 def position_command(moves: list[str]) -> str:
@@ -135,6 +136,8 @@ def main() -> None:
     parser.add_argument("--openings", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--pairs", type=int, default=10)
+    parser.add_argument("--opening-offset", type=int, default=0,
+                        help="skip this many openings after deterministic shuffling")
     parser.add_argument("--opening-plies", type=int, default=8)
     parser.add_argument("--movetime-ms", type=int, default=5000)
     parser.add_argument("--max-plies", type=int, default=180)
@@ -145,10 +148,12 @@ def main() -> None:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--seed", type=int, default=20261001)
     args = parser.parse_args()
-    if args.pairs < 1 or args.movetime_ms < 100 or args.max_plies <= args.opening_plies:
+    if (args.pairs < 1 or args.opening_offset < 0 or args.movetime_ms < 100 or
+            args.max_plies <= args.opening_plies):
         raise ValueError("invalid match configuration")
 
-    openings = load_openings(args.openings, args.pairs, args.opening_plies, args.seed)
+    openings = load_openings(args.openings, args.pairs, args.opening_plies, args.seed,
+                             args.opening_offset)
     draft = JevDraftModel(args.model, args.device)
     native = PikafishProcess(args.pikafish, args.threads, args.hash)
     target = PikafishProcess(args.pikafish, args.threads, args.hash)
@@ -164,6 +169,7 @@ def main() -> None:
         "model": str(Path(args.model).resolve()),
         "modelSha256": sha256_file(args.model),
         "pairs": args.pairs,
+        "openingOffset": args.opening_offset,
         "movetimeMs": args.movetime_ms,
         "threads": args.threads,
         "hashMb": args.hash,
@@ -173,7 +179,8 @@ def main() -> None:
         "seed": args.seed,
     }
     try:
-        for pair, opening in enumerate(openings):
+        for local_pair, opening in enumerate(openings):
+            pair = args.opening_offset + local_pair
             for hybrid_color in ("red", "black"):
                 game = play_game(native, hybrid, opening, hybrid_color, args.movetime_ms, args.max_plies)
                 game.update({"game": len(games), "pair": pair})

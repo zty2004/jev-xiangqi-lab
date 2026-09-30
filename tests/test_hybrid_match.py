@@ -14,8 +14,8 @@ class HybridMatchTests(unittest.TestCase):
                 handle.write(json.dumps({"kind": "game", "game": game, "opening": moves}) + "\n")
             handle.flush()
             first = load_openings(handle.name, 2, 2, 7)
-            second = load_openings(handle.name, 2, 2, 7)
-        self.assertEqual(first, second)
+            second = load_openings(handle.name, 1, 2, 7, offset=1)
+        self.assertEqual(first[1:], second)
         self.assertEqual(len({tuple(item) for item in first}), 2)
 
     def test_summary_scores_hybrid_and_speculation(self):
