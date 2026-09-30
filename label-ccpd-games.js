@@ -14,14 +14,16 @@ const limit = Number(option('--positions', 1200));
 const moveTime = Number(option('--movetime', 500));
 const seed = Number(option('--seed', 20260923));
 const phaseOnly = option('--phase', null);
+const workers = Number(option('--workers', 1));
 const includeHumanMachine = args.includes('--include-human-machine');
 const planOnly = args.includes('--plan-only');
 const resume = args.includes('--resume');
 const excludeFiles = args.flatMap((item, index) => item === '--exclude-teacher' ? [path.resolve(args[index + 1])] : []);
 if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(moveTime) || moveTime < 20 ||
     (phaseOnly && !['opening', 'middlegame', 'endgame'].includes(phaseOnly)) ||
+    !Number.isInteger(workers) || workers < 1 || workers > 16 ||
     !Number.isInteger(seed) || (resume && planOnly) || (!planOnly && !binary)) {
-  console.error('Usage: node label-ccpd-games.js --pikafish /path/to/Pikafish --phase middlegame --positions 1200 --movetime 500 --exclude-teacher data/teacher.jsonl [--resume] [--plan-only]');
+  console.error('Usage: node label-ccpd-games.js --pikafish /path/to/Pikafish --phase middlegame --positions 1200 --movetime 500 --workers 4 --exclude-teacher data/teacher.jsonl [--resume] [--plan-only]');
   process.exit(2);
 }
 
@@ -139,20 +141,25 @@ async function main() {
     if (existsSync(output)) throw new Error(`Output exists: ${output}. Use --resume or a new path.`);
     writeFileSync(output, JSON.stringify(metadata) + '\n');
   }
-  const teacher = new PikafishTeacher(binary);
+  const teachers = Array.from({ length: workers }, () => new PikafishTeacher(binary));
   try {
-    await teacher.ready();
-    for (let i = done; i < selected.length; i++) {
-      const sample = selected[i];
-      teacher.send('ucinewgame');
-      const analysis = await teacher.analyse(sample.fen, moveTime, sample.historyMoves);
-      if (!sample.legal.includes(analysis.best)) throw new Error(`Illegal teacher move at sample ${i}`);
-      const { historyMoves, ...row } = sample;
-      appendFileSync(output, JSON.stringify({ kind: 'position', ...row, best: analysis.best,
-        candidates: analysis.candidates.filter(item => sample.legal.includes(item.move)), depth: analysis.depth }) + '\n');
-      if ((i + 1) % 100 === 0 || i + 1 === selected.length) console.log(`${i + 1}/${selected.length} labelled`);
+    await Promise.all(teachers.map(teacher => teacher.ready()));
+    for (let start = done; start < selected.length; start += workers) {
+      const batch = selected.slice(start, start + workers);
+      const rows = await Promise.all(batch.map(async (sample, offset) => {
+        const teacher = teachers[offset];
+        teacher.send('ucinewgame');
+        const analysis = await teacher.analyse(sample.fen, moveTime, sample.historyMoves);
+        if (!sample.legal.includes(analysis.best)) throw new Error(`Illegal teacher move at sample ${start + offset}`);
+        const { historyMoves, ...row } = sample;
+        return { kind: 'position', ...row, best: analysis.best,
+          candidates: analysis.candidates.filter(item => sample.legal.includes(item.move)), depth: analysis.depth };
+      }));
+      appendFileSync(output, rows.map(row => JSON.stringify(row)).join('\n') + '\n');
+      const completed = start + rows.length;
+      if (completed % 100 < workers || completed === selected.length) console.log(`${completed}/${selected.length} labelled`);
     }
-  } finally { teacher.close(); }
+  } finally { teachers.forEach(teacher => teacher.close()); }
   console.log(JSON.stringify({ output, ...summary, positions: selected.length }));
 }
 
