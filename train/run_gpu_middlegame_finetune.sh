@@ -26,11 +26,11 @@ old_teacher=(
 
 CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \
   --model "$base" "${old_teacher[@]}" --data "$teacher" --test-source-index 3 \
-  --phase middlegame --device cuda \
+  --phase middlegame --seed 20260930 --device cuda \
   > reports/choice-middle-baseline-new-teacher.json
 CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \
   --model "$base" "${old_teacher[@]}" --data "$teacher" \
-  --test-source-index 0 --test-source-index 1 --test-source-index 2 --phase middlegame --device cuda \
+  --test-source-index 0 --test-source-index 1 --test-source-index 2 --phase middlegame --seed 20260930 --device cuda \
   > reports/choice-middle-baseline-independent.json
 
 for spec in dominant:4 best:6; do
@@ -47,14 +47,14 @@ for spec in dominant:4 best:6; do
 
   CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \
     --model "models/${name}.pt" "${old_teacher[@]}" --data "$teacher" --test-source-index 3 \
-    --phase middlegame --device cuda \
+    --phase middlegame --seed 20260930 --device cuda \
     > "reports/${name}-new-teacher.json"
   CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \
     --model "models/${name}.pt" "${old_teacher[@]}" --data "$teacher" \
-    --test-source-index 0 --test-source-index 1 --test-source-index 2 --phase middlegame --device cuda \
+    --test-source-index 0 --test-source-index 1 --test-source-index 2 --phase middlegame --seed 20260930 --device cuda \
     > "reports/${name}-independent.json"
   CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/compare_choice_models.py \
     --model-a "$base" --model-b "models/${name}.pt" "${old_teacher[@]}" --data "$teacher" \
-    --test-source-index 3 --phase middlegame --device cuda \
+    --test-source-index 3 --phase middlegame --seed 20260930 --device cuda \
     > "reports/compare-${name}-new-teacher.json"
 done
