@@ -1,0 +1,28 @@
+{
+  "kind": "ccpd-all-import-summary",
+  "source": "Chinese Chess Practical Dataset (CCPD)",
+  "sourceUrl": "https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset",
+  "license": "CC BY 4.0",
+  "sourceCommit": "368a47a947773dd8692c026e286dd19b6277b993",
+  "sourceTreeSha256": "997132468a856479b166e6729255a76b68630c29a2bb54ff0f74809bf9d02e98",
+  "datasetSha256": "ee6f12a130674efa2eb5602a74e6e6045666a0a800abdf4e10d7a8bcc29a9448",
+  "fullReportSha256": "5b1d676aca926efc4d02511093327b52b29f9af147b7728b9359cf0ae39ee99f",
+  "files": 53893,
+  "importedGames": 27943,
+  "duplicateGames": 25862,
+  "failedFiles": 88,
+  "importedPlies": 2411345,
+  "uniquePositions": 1792341,
+  "novelPositionsAgainstPriorTeachers": 1788341,
+  "phasePlies": {
+    "opening": 446938,
+    "middle": 1138918,
+    "late": 825489
+  },
+  "categories": {
+    "master": { "files": 53685, "imported": 27757, "failed": 81, "duplicates": 25847 },
+    "computerCompetition": { "files": 167, "imported": 155, "failed": 7, "duplicates": 5 },
+    "humanMachine": { "files": 41, "imported": 31, "failed": 0, "duplicates": 10 }
+  },
+  "limitations": "The full 34 MB game JSONL and 4 MB detailed report remain on the training host. This tracked summary records their hashes. Human master moves are used only as source positions; Pikafish supplies the training labels."
+}

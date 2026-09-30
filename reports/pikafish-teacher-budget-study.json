@@ -1,0 +1,27 @@
+{
+  "kind": "pikafish-teacher-budget-study",
+  "date": "2026-09-30",
+  "sourcePositions": "teacher-ccpd-middle-4000-pikafish.jsonl",
+  "sample": { "positions": 100, "phase": "middlegame", "seed": 20260930, "trials": 2 },
+  "engine": { "threads": 1, "hashMb": 64, "multiPv": 8 },
+  "budgets": [
+    {
+      "nodes": 50000,
+      "unanimousBestRate": 1.0,
+      "agreementWithPrior500msLabels": 0.59,
+      "meanDepth": 9.4,
+      "depthRange": [5, 29],
+      "fullReportSha256": "bb6e4f9d0461c24b4e86be2a30d2b3ff4a47e969fbc2abb271aea25fa4cc4047"
+    },
+    {
+      "nodes": 250000,
+      "unanimousBestRate": 1.0,
+      "agreementWithPrior500msLabels": 0.67,
+      "meanDepth": 14.58,
+      "depthRange": [8, 164],
+      "fullReportSha256": "a64894031e1c5be2eaca88e7dc3e13ec443c1b2400d8c4709b75f21c65871b1d"
+    }
+  ],
+  "decision": "Use 250000 nodes per position for the next middlegame teacher corpus. It was deterministic in this audit and agreed more often with the prior 500 ms labels than the 50000-node setting.",
+  "limitations": "Agreement with the old labels measures target drift across budgets, not ground-truth move correctness. The final model gate remains top-1 agreement on a game-disjoint fixed-node holdout."
+}

@@ -46,4 +46,10 @@ node verify-data.js data/teacher-ccpd-competition-1200.jsonl
 node verify-ccpd-teacher.js data/teacher-ccpd-competition-1200.jsonl data/ccpd-computer-games.jsonl data/teacher-openings-5000.jsonl data/teacher-games-160.jsonl
 ```
 
+## CCPD 全量对局与固定节点教师（2026-09-30）
+
+完整导入 CCPD `Dataset/對局` 下的大师、人机和电脑比赛棋谱。53,893 个 PGN 经逐步合法重放和整局去重后保留 27,943 盘、2,411,345 个半回合与 1,792,341 个唯一局面；88 个损坏或过短文件被隔离。详细统计、源提交和文件哈希见[全量导入摘要](reports/ccpd-all-import-summary.json)。CCPD 使用 CC BY 4.0 许可。
+
+人类棋谱只提供真实局面，不直接作为最佳招监督。下一批中局由 Pikafish 单线程、64 MB Hash、MultiPV 8、每局面固定 250,000 节点重新标注。100 个中局各重复两次均得到相同最佳招；预算对比见[教师预算研究](reports/pikafish-teacher-budget-study.json)。训练、验证、校准和测试继续按整盘棋隔离，最终门槛为固定节点测试集 top-1 一致率至少 50%。
+
 长将判罚修复后，逐局重放将先前误标为重复和棋的 19 局改判为长将方负；没有棋局在新的终局点之后继续走子。原始教师分析只接收 FEN，不知道之前的重复历史，因此靠近循环终点的 `best` 标签不应被解释为遵守长将规则的最佳招。训练带历史输入的模型前，应排除这类局面或根据完整棋谱重标。
