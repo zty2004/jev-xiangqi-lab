@@ -1,0 +1,28 @@
+{
+  "kind": "choice-model-training-summary",
+  "teacherPositions": 20000,
+  "fixedNodeTestPositions": 2000,
+  "priorIndependentTestPositions": 1869,
+  "seed": 20260930,
+  "candidate": {
+    "name": "choice-middle-fixednodes-20k-finetune-pilot-gpu0",
+    "sha256": "2a41cd9737f6002aa9257013cea78c796aded365aa121c54936c203ed61ae411",
+    "fixedNodeTop1": 0.253,
+    "fixedNodeTop3": 0.4645,
+    "fixedNodeTop5": 0.587,
+    "fixedNodeNll": 2.6807280624716183,
+    "priorIndependentTop1": 0.3258426966292135
+  },
+  "production": {
+    "sha256": "4542669dabdc0b97ba83811287e6ad43d73b4bbc83d0910ef12755739fbc834d",
+    "fixedNodeTop1": 0.2425,
+    "fixedNodeTop3": 0.433,
+    "fixedNodeTop5": 0.552,
+    "fixedNodeNll": 2.805250174875415,
+    "priorIndependentTop1": 0.3424291064740503
+  },
+  "fixedNodeTop1Gain": 0.0105,
+  "fixedNodeTop1Gain95GameBootstrap": [-0.002, 0.023],
+  "priorIndependentTop1Gain": -0.0165864098448368,
+  "decision": "Do not promote. The candidate improves fixed-node NLL and point-estimate top-1, but the top-1 confidence interval includes zero and prior-independent top-1 regresses. Keep production as the round-7 initialization."
+}
