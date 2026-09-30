@@ -1,0 +1,78 @@
+{
+  "schema": "jev-choice-model-promotion-v1",
+  "date": "2026-10-01",
+  "decision": "promote",
+  "candidate": {
+    "path": "models/choice-middle-round9-pv-128x8-gpu0.pt",
+    "sha256": "fb3ffa0f45de79302e2ad49a0f2770a8a500b1e8466cd9955495e0678fef9fe3",
+    "channels": 128,
+    "blocks": 8,
+    "policyFeatures": "v1",
+    "selectedEpoch": 2,
+    "temperature": 0.859309649061239
+  },
+  "priorProduction": {
+    "path": "models/choice-selfplay-round1-finetune-gpu0.pt",
+    "sha256": "4542669dabdc0b97ba83811287e6ad43d73b4bbc83d0910ef12755739fbc834d"
+  },
+  "training": {
+    "device": "dash-dev-191-root GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+    "splitSizes": {
+      "train": 185495,
+      "validation": 19483,
+      "calibration": 18801,
+      "test": 18937
+    },
+    "effectiveTrainingExamples": 370990,
+    "initialModelSha256": "1c9f89c1fd39b096209903cf08ff26bb23f577f05c49195c323b77a1294a9d2e",
+    "pvRootDataSha256": "a1cc3a97c062352b7c2e8527ada37f548c95dd697aabb2e71cf37dfe6c2a064d",
+    "pvExpandedDataSha256": "b7eae130a2a3688a600b86c6bff8440042195190d3abb4020a94b06f7b2c6395",
+    "pvRoots": 20000,
+    "pvContinuations": 77285,
+    "maximumContinuationPlies": 4,
+    "continuationWeight": 0.15,
+    "continuationsExcludedFromHeldOutMetrics": true
+  },
+  "gates": {
+    "strictMiddle150k": {
+      "positions": 14953,
+      "games": 2641,
+      "priorProductionTop1": 0.24095499230923562,
+      "candidateTop1": 0.3477563030829934,
+      "top1Gain": 0.10680131077375776,
+      "top1Gain95GameBootstrap": [0.09906892625092102, 0.11492796157950907],
+      "priorProductionNll": 2.778786981796145,
+      "candidateNll": 2.2705574618579685
+    },
+    "strictMiddle150kVersusInitialization": {
+      "positions": 14953,
+      "games": 2641,
+      "initialTop1": 0.30421988898548785,
+      "candidateTop1": 0.3477563030829934,
+      "top1Gain": 0.04353641409750553,
+      "top1Gain95GameBootstrap": [0.037673982869379015, 0.04909786035280703]
+    },
+    "priorIndependent": {
+      "positions": 1869,
+      "games": 43,
+      "priorProductionTop1": 0.3424291064740503,
+      "candidateTop1": 0.3986088817549492,
+      "top1Gain": 0.0561797752808989,
+      "top1Gain95GameBootstrap": [0.016674177557458314, 0.09952854897852279],
+      "priorProductionNll": 2.4120894346033066,
+      "candidateNll": 2.0946119232708367
+    }
+  },
+  "latencyReports": [
+    "reports/choice-middle-round9-pv-128x8-gpu0-inference-local.json",
+    "reports/choice-middle-round9-pv-128x8-gpu0-inference-cpu.json",
+    "reports/choice-middle-round9-pv-128x8-gpu0-inference-cuda.json"
+  ],
+  "evidence": [
+    "reports/compare-choice-middle-round9-pv-128x8-gpu0-vs-production-middle150.json",
+    "reports/compare-choice-middle-round9-pv-128x8-gpu0-vs-round7-middle150.json",
+    "reports/compare-choice-middle-round9-pv-128x8-gpu0-vs-production-prior-independent.json",
+    "reports/choice-middle-round9-pv-128x8-gpu0-pv20k-root-test.json"
+  ],
+  "limitations": "The promotion establishes a materially better Jev legal-move prior on two game-disjoint teacher benchmarks. It does not by itself establish a playing-strength gain or parity with Pikafish. The policy is currently used for root move ordering; deeper-node policy guidance remains future work."
+}

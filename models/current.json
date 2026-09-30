@@ -1,6 +1,6 @@
 {
-  "model": "choice-selfplay-round1-finetune-gpu0.pt",
-  "sha256": "4542669dabdc0b97ba83811287e6ad43d73b4bbc83d0910ef12755739fbc834d",
-  "promotedAt": "2026-09-29",
-  "reason": "Low-rate fine-tuning on search distributions improved both the independent teacher holdout and master-opening holdout versus the previous production model."
+  "model": "choice-middle-round9-pv-128x8-gpu0.pt",
+  "sha256": "fb3ffa0f45de79302e2ad49a0f2770a8a500b1e8466cd9955495e0678fef9fe3",
+  "promotedAt": "2026-10-01",
+  "reason": "PV-continuation training improved game-disjoint middlegame top-1 accuracy over the prior production model by 10.68 points on the 150k teacher holdout and 5.62 points on the prior independent holdout; both game-bootstrap intervals exclude zero, with negligible search-budget latency."
 }

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { currentChoiceModel, currentNnueModel } from '../src/model-selection.js';
 
 test('promoted choice model is the default and can be disabled or overridden', () => {
-  assert.equal(path.basename(currentChoiceModel()), 'choice-selfplay-round1-finetune-gpu0.pt');
+  assert.equal(path.basename(currentChoiceModel()), 'choice-middle-round9-pv-128x8-gpu0.pt');
   assert.equal(currentChoiceModel('off'), null);
   assert.equal(currentChoiceModel('./models/custom.pt'), path.resolve('./models/custom.pt'));
 });

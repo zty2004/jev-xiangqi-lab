@@ -1,0 +1,1 @@
+{"temperature": 0.859309649061239, "phase": "middlegame", "test": {"count": 2000, "top1": 0.339, "top3": 0.591, "top5": 0.707, "mean_reciprocal_rank": 0.504669981012653, "nll": 2.307797146412491, "brier": 0.802486383497715, "mean_top_probability": 0.4113052706979215, "ece10": 0.07311981858685612}, "test_wdl": null}
