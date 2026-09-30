@@ -1,0 +1,40 @@
+{
+  "kind": "choice-model-training-summary",
+  "teacher": {
+    "positions": 20000,
+    "games": 20000,
+    "nodesPerPosition": 250000,
+    "sha256": "64ffff3999bfa684491be539c02bb4df89c05e0b7688195f146a367c89477cd2"
+  },
+  "split": { "training": 14000, "validation": 2000, "calibration": 2000, "test": 2000 },
+  "models": [
+    {
+      "name": "production-baseline",
+      "sha256": "4542669dabdc0b97ba83811287e6ad43d73b4bbc83d0910ef12755739fbc834d",
+      "top1": 0.2425,
+      "top3": 0.433,
+      "top5": 0.552,
+      "nll": 2.805250174875415
+    },
+    {
+      "name": "choice-middle-fixednodes-128x8-v1-gpu0",
+      "sha256": "ff528a60f5827d98a614b79b63fdb3c66948f67b8bc1f9d2320872842505cef3",
+      "top1": 0.2225,
+      "top3": 0.4005,
+      "top5": 0.508,
+      "nll": 2.8625584520726632,
+      "top1GainVsProduction": -0.02
+    },
+    {
+      "name": "choice-middle-fixednodes-192x10-v2-gpu0",
+      "sha256": "7de7b68fb9e300d1c740e29b1bae91f66013ac546954f060b8bb60a9f0431ae5",
+      "top1": 0.224,
+      "top3": 0.408,
+      "top5": 0.5305,
+      "nll": 2.8288571234568423,
+      "top1GainVsProduction": -0.0185
+    }
+  ],
+  "decision": "Reject both candidates. Neither improves the production model on the game-disjoint fixed-node test, and neither approaches the 0.50 top-1 goal.",
+  "next": "Increase the fixed-node corpus to 150000 positions and train with a dominant MultiPV target plus validation-driven learning-rate reduction."
+}

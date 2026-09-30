@@ -513,6 +513,10 @@ def train(args):
             raise ValueError(f"initial model architecture mismatch: expected {expected}, got {actual}")
         initialize_from_checkpoint(model, initial)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    scheduler = (torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="max" if args.selection_metric == "top1" else "min",
+        factor=0.5, patience=args.lr_patience, min_lr=args.min_lr)
+        if args.lr_patience else None)
     print(f"device={device} train={len(training)} validation={len(validation)} calibration={len(calibration)} test={len(test)}", flush=True)
     best_loss = float("inf")
     best_accuracy = -1.0
@@ -529,7 +533,8 @@ def train(args):
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
         validation_loss, accuracy = evaluate(model, validation_loader, device)
-        print(f"epoch={epoch} val_loss={validation_loss:.4f} top1={accuracy:.3f}", flush=True)
+        current_lr = optimizer.param_groups[0]["lr"]
+        print(f"epoch={epoch} val_loss={validation_loss:.4f} top1={accuracy:.3f} lr={current_lr:.2g}", flush=True)
         improved = (accuracy > best_accuracy if args.selection_metric == "top1" else validation_loss < best_loss)
         if improved:
             best_loss = validation_loss
@@ -540,6 +545,9 @@ def train(args):
                         "policy_features": args.policy_features,
                         "value_loss_weight": args.value_loss_weight, "policy_target": args.policy_target,
                         "selection_metric": args.selection_metric,
+                        "lr_scheduler": ({"kind": "plateau", "patience": args.lr_patience,
+                                          "factor": 0.5, "min_lr": args.min_lr}
+                                         if scheduler else None),
                         "mirror_augmentation": args.mirror_augmentation,
                         "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
@@ -557,6 +565,8 @@ def train(args):
             if args.patience and stale_epochs >= args.patience:
                 print(f"early_stop={epoch} patience={args.patience}", flush=True)
                 break
+        if scheduler:
+            scheduler.step(accuracy if args.selection_metric == "top1" else validation_loss)
     model, _ = load_model(args.output, device)
     calibration_predictions = collect_predictions(model, calibration, device, args.batch)
     temperature = fit_temperature(calibration_predictions)
@@ -655,6 +665,9 @@ def main():
     train_parser.add_argument("--epochs", type=int, default=10)
     train_parser.add_argument("--batch", type=int, default=128)
     train_parser.add_argument("--lr", type=float, default=1e-3)
+    train_parser.add_argument("--lr-patience", type=int, default=0,
+                              help="halve learning rate after this many validation plateaus; 0 disables")
+    train_parser.add_argument("--min-lr", type=float, default=1e-6)
     train_parser.add_argument("--channels", type=int, default=64)
     train_parser.add_argument("--blocks", type=int, default=4)
     train_parser.add_argument("--policy-features", choices=["v1", "v2"], default="v1")
@@ -685,6 +698,8 @@ def main():
     if args.command == "train":
         if not 0 <= args.value_loss_weight <= 1:
             raise ValueError("value loss weight must be between 0 and 1")
+        if args.lr_patience < 0 or args.min_lr <= 0 or args.min_lr > args.lr:
+            raise ValueError("learning-rate schedule must have nonnegative patience and 0 < min-lr <= lr")
         train(args)
     else:
         device = select_device(args.device)
