@@ -17,6 +17,20 @@ export function pikafishBudget(value) {
   return { command: `go movetime ${moveTime}`, timeout: Number(value.timeoutMs) || moveTime + 20000, moveTime, nodes: null };
 }
 
+export function parsePikafishInfo(line) {
+  if (!line.startsWith('info ') || !line.includes(' multipv ') || !line.includes(' pv ')) return null;
+  const depth = Number(line.match(/\bdepth (\d+)/)?.[1]);
+  const selectiveDepth = Number(line.match(/\bseldepth (\d+)/)?.[1]) || 0;
+  const nodes = Number(line.match(/\bnodes (\d+)/)?.[1]) || 0;
+  const rank = Number(line.match(/\bmultipv (\d+)/)?.[1]);
+  const score = line.match(/\bscore (cp|mate) (-?\d+)/);
+  const pv = line.slice(line.indexOf(' pv ') + 4).trim().split(/\s+/)
+    .filter(move => /^[a-i][0-9][a-i][0-9]$/.test(move));
+  if (!depth || !rank || !score || !pv.length) return null;
+  return { depth, selectiveDepth, nodes, rank, move: pv[0], pv,
+    score: Number(score[2]), scoreType: score[1] };
+}
+
 export class PikafishTeacher {
   constructor(filename) {
     this.process = spawn(filename, [], { cwd: path.dirname(path.resolve(filename)), stdio: ['pipe', 'pipe', 'pipe'] });
@@ -64,16 +78,13 @@ export class PikafishTeacher {
     const byDepth = new Map();
     let searchedNodes = 0, selectiveDepth = 0;
     const finished = this.until(line => line.startsWith('bestmove '), budget.timeout, line => {
-      if (!line.startsWith('info ') || !line.includes(' multipv ') || !line.includes(' pv ')) return;
-      const depth = Number(line.match(/\bdepth (\d+)/)?.[1]);
-      searchedNodes = Math.max(searchedNodes, Number(line.match(/\bnodes (\d+)/)?.[1]) || 0);
-      selectiveDepth = Math.max(selectiveDepth, Number(line.match(/\bseldepth (\d+)/)?.[1]) || 0);
-      const rank = Number(line.match(/\bmultipv (\d+)/)?.[1]);
-      const score = line.match(/\bscore (cp|mate) (-?\d+)/);
-      const move = line.match(/\bpv ([a-i][0-9][a-i][0-9])/);
-      if (!depth || !rank || !score || !move) return;
-      if (!byDepth.has(depth)) byDepth.set(depth, new Map());
-      byDepth.get(depth).set(rank, { move: move[1], score: Number(score[2]), scoreType: score[1] });
+      const info = parsePikafishInfo(line);
+      if (!info) return;
+      searchedNodes = Math.max(searchedNodes, info.nodes);
+      selectiveDepth = Math.max(selectiveDepth, info.selectiveDepth);
+      if (!byDepth.has(info.depth)) byDepth.set(info.depth, new Map());
+      byDepth.get(info.depth).set(info.rank, { move: info.move, pv: info.pv,
+        score: info.score, scoreType: info.scoreType });
     });
     this.send(historyMoves ? `position startpos${historyMoves.length ? ` moves ${historyMoves.join(' ')}` : ''}` : `position fen ${fen}`);
     this.send(budget.command);
