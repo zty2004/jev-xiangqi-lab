@@ -159,6 +159,8 @@ def main() -> None:
         "createdUnix": int(time.time()),
         "pikafish": str(Path(args.pikafish).resolve()),
         "pikafishSha256": sha256_file(args.pikafish),
+        "pikafishNnueSha256": (sha256_file(str(Path(args.pikafish).resolve().parent / "pikafish.nnue"))
+                                if (Path(args.pikafish).resolve().parent / "pikafish.nnue").is_file() else None),
         "model": str(Path(args.model).resolve()),
         "modelSha256": sha256_file(args.model),
         "pairs": args.pairs,
