@@ -17,7 +17,9 @@ const nodeBudget = nodeBudgetValue === null ? null : Number(nodeBudgetValue);
 const seed = Number(option('--seed', 20260923));
 const phaseOnly = option('--phase', null);
 const workers = Number(option('--workers', 1));
+const maxPerGamePhase = Number(option('--max-per-game-phase', 0));
 const includeHumanMachine = args.includes('--include-human-machine');
+const includeAll = args.includes('--include-all');
 const planOnly = args.includes('--plan-only');
 const resume = args.includes('--resume');
 const excludeFiles = args.flatMap((item, index) => item === '--exclude-teacher' ? [path.resolve(args[index + 1])] : []);
@@ -26,8 +28,9 @@ if (!Number.isInteger(limit) || limit < 1 ||
     (nodeBudget !== null && (!Number.isInteger(nodeBudget) || nodeBudget < 1)) ||
     (phaseOnly && !['opening', 'middlegame', 'endgame'].includes(phaseOnly)) ||
     !Number.isInteger(workers) || workers < 1 || workers > 16 ||
+    !Number.isInteger(maxPerGamePhase) || maxPerGamePhase < 0 ||
     !Number.isInteger(seed) || (resume && planOnly) || (!planOnly && !binary)) {
-  console.error('Usage: node label-ccpd-games.js --pikafish /path/to/Pikafish --phase middlegame --positions 1200 [--movetime 500 | --nodes 50000] --workers 4 --exclude-teacher data/teacher.jsonl [--resume] [--plan-only]');
+  console.error('Usage: node label-ccpd-games.js --pikafish /path/to/Pikafish --phase middlegame --positions 1200 [--movetime 500 | --nodes 50000] --workers 4 --exclude-teacher data/teacher.jsonl [--include-all] [--max-per-game-phase 2] [--resume] [--plan-only]');
   process.exit(2);
 }
 
@@ -43,6 +46,12 @@ function shuffle(items, random) {
     const j = Math.floor(random() * (i + 1));
     [items[i], items[j]] = [items[j], items[i]];
   }
+}
+function stableSample(items, count, game, phase) {
+  if (!count || items.length <= count) return items;
+  return items.map(item => ({ item, key: sha256(`${seed}:${game}:${phase}:${item.ply}`) }))
+    .sort((left, right) => left.key < right.key ? -1 : left.key > right.key ? 1 : 0)
+    .slice(0, count).map(({ item }) => item);
 }
 const phaseIndex = new Map([['opening', 0], ['middlegame', 1], ['endgame', 2]]);
 
@@ -60,10 +69,12 @@ function selectPositions() {
   const skipped = { existing: 0, duplicate: 0, terminalTail: 0 };
   let games = 0;
   for (const row of rows) {
-    if (row.kind !== 'game' || (!includeHumanMachine && row.sourceCategory !== '電腦對局競賽')) continue;
+    if (row.kind !== 'game' || (!includeAll && !includeHumanMachine && row.sourceCategory !== '電腦對局競賽') ||
+        (!includeAll && includeHumanMachine && !['電腦對局競賽', '人機賽'].includes(row.sourceCategory))) continue;
     games++;
     let position = parseFen(row.startFen);
     const history = [positionKey(position)];
+    const gameCandidates = Array.from({ length: 3 }, () => []);
     for (let ply = 0; ply < row.moves.length; ply++) {
       if (gameResult(position, history)) {
         skipped.terminalTail += row.moves.length - ply;
@@ -79,15 +90,17 @@ function selectPositions() {
         const candidate = { game: row.game, ply, fen, legal, played: row.moves[ply],
           sourceCategory: row.sourceCategory, sourceFile: row.sourceFile, sourceSha256: row.sourceSha256,
           historyMoves: row.moves.slice(0, ply) };
-        const group = byPhase[phaseIndex.get(gamePhase(position))];
-        if (!group.has(row.game)) group.set(row.game, []);
-        group.get(row.game).push(candidate);
+        gameCandidates[phaseIndex.get(gamePhase(position))].push(candidate);
         seen.add(key);
       }
       const move = legalMoves(position).find(item => moveName(item) === row.moves[ply]);
       if (!move) throw new Error(`Illegal move in source game ${row.game}, ply ${ply}`);
       position = makeMove(position, move);
       history.push(positionKey(position));
+    }
+    for (let phase = 0; phase < gameCandidates.length; phase++) {
+      const candidates = stableSample(gameCandidates[phase], maxPerGamePhase, row.game, phase);
+      if (candidates.length) byPhase[phase].set(row.game, candidates);
     }
   }
   const available = byPhase.map(group => [...group.values()].reduce((sum, items) => sum + items.length, 0));
@@ -115,7 +128,8 @@ function selectPositions() {
   }
   if (selected.length < limit) throw new Error(`Phase quota unavailable: selected ${selected.length} of ${limit}`);
   shuffle(selected, random);
-  return { selected, summary: { sourceGames: games, excludedPositions: exclude.size, eligibleByPhase: available,
+  return { selected, summary: { sourceGames: games, includedCategories: includeAll ? 'all' : includeHumanMachine ? 'computer-and-human-machine' : 'computer-competition',
+    maxPerGamePhase, excludedPositions: exclude.size, eligibleByPhase: available,
     selectedByPhase: counts, selectedGames: new Set(selected.map(row => row.game)).size, skipped } };
 }
 
@@ -125,11 +139,11 @@ async function main() {
     console.log(JSON.stringify({ ...summary, positions: selected.length, selectionSha256: sha256(JSON.stringify(selected)) }));
     return;
   }
-  const metadata = { kind: 'meta', model: 'Pikafish', source: 'CCPD computer competition',
+  const metadata = { kind: 'meta', model: 'Pikafish', source: includeAll ? 'CCPD all match categories' : 'CCPD computer competition',
     sourceFile: path.basename(input), sourceSha256: fileSha256(input),
     teacherBinarySha256: fileSha256(binary), positions: selected.length,
     budget: nodeBudget === null ? { moveTime } : { nodes: nodeBudget }, seed,
-    includeHumanMachine, excludeSources: excludeFiles.map(filename => ({ file: path.basename(filename), sha256: fileSha256(filename) })),
+    includeHumanMachine, includeAll, excludeSources: excludeFiles.map(filename => ({ file: path.basename(filename), sha256: fileSha256(filename) })),
     selectionSha256: sha256(JSON.stringify(selected)),
     sampling: phaseOnly ? `game-round-robin ${phaseOnly} positions` : 'game-round-robin phase quotas 25/40/35', ...summary };
   let done = 0;

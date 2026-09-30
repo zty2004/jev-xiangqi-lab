@@ -9,26 +9,44 @@ const args = process.argv.slice(2);
 function option(name, fallback) { const index = args.indexOf(name); return index < 0 ? fallback : args[index + 1]; }
 const input = option('--input');
 const sourceCommit = option('--source-commit');
+const scope = option('--scope', 'computer');
 const output = option('--output', 'data/ccpd-computer-games.jsonl');
 const reportPath = option('--report', 'reports/ccpd-computer-import.json');
 const comparisonFiles = args.flatMap((value, index) => value === '--compare-teacher' ? [args[index + 1]] : []);
-if (!input || !sourceCommit) {
-  console.error('Usage: node ccpd-games.js --input /path/to/CCPD/Dataset/對局/電腦對局 --source-commit SHA [--output data/ccpd-computer-games.jsonl]');
+if (!input || !sourceCommit || !['computer', 'all'].includes(scope)) {
+  console.error('Usage: node ccpd-games.js --input /path/to/CCPD/Dataset/對局/電腦對局 --source-commit SHA [--scope computer|all] [--output data/ccpd-computer-games.jsonl]');
   process.exit(2);
 }
 
 const resultSide = value => value === '1-0' ? 'red' : value === '0-1' ? 'black' : value === '1/2-1/2' ? null : undefined;
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
-const categories = ['電腦對局競賽', '人機賽'];
+async function pgnFiles(directory, prefix = '') {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) files.push(...await pgnFiles(path.join(directory, entry.name), relative));
+    else if (entry.isFile() && entry.name.toLowerCase().endsWith('.pgn')) files.push(relative);
+  }
+  return files;
+}
+function sourceCategory(sourceFile) {
+  if (sourceFile.includes('電腦對局競賽/')) return '電腦對局競賽';
+  if (sourceFile.includes('人機賽/')) return '人機賽';
+  if (sourceFile.includes('大師對局/')) return '大師對局';
+  return sourceFile.split('/')[0];
+}
+const files = scope === 'computer'
+  ? (await Promise.all(['電腦對局競賽', '人機賽'].map(async category =>
+      (await pgnFiles(path.join(input, category))).map(filename => `${category}/${filename}`)))).flat()
+  : await pgnFiles(input);
+const categories = [...new Set(files.map(sourceCategory))].sort();
 const sourceHash = createHash('sha256'), games = [], failures = [], duplicates = [];
 const seen = new Map(), counts = {};
 const positionKeys = new Set(), phasePlies = { opening: 0, middle: 0, late: 0 };
-for (const category of categories) {
-  counts[category] = { files: 0, imported: 0, failed: 0, duplicates: 0, plies: 0 };
-  const directory = path.join(input, category);
-  const files = (await readdir(directory)).filter(name => name.toLowerCase().endsWith('.pgn')).sort();
-  for (const filename of files) {
-    const sourceFile = `${category}/${filename}`, bytes = await readFile(path.join(directory, filename));
+for (const category of categories) counts[category] = { files: 0, imported: 0, failed: 0, duplicates: 0, plies: 0 };
+for (const sourceFile of files) {
+    const category = sourceCategory(sourceFile), bytes = await readFile(path.join(input, sourceFile));
     counts[category].files++;
     sourceHash.update(sourceFile); sourceHash.update(bytes);
     try {
@@ -72,11 +90,11 @@ for (const category of categories) {
       failures.push({ file: sourceFile, reason: error.message });
       counts[category].failed++;
     }
-  }
 }
 const metadata = { kind: 'meta', format: 'iccs-game-v1', source: 'Chinese Chess Practical Dataset (CCPD)',
   sourceUrl: 'https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset', sourceCommit,
-  license: 'CC BY 4.0', sourceTreeSha256: sourceHash.digest('hex'), categories, files: Object.values(counts).reduce((n, x) => n + x.files, 0) };
+  license: 'CC BY 4.0', scope, sourceTreeSha256: sourceHash.digest('hex'), categories,
+  files: Object.values(counts).reduce((n, x) => n + x.files, 0) };
 const comparisonKeys = new Set(), comparisonTeacherSha256 = [];
 for (const filename of comparisonFiles) {
   const bytes = await readFile(filename);
