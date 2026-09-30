@@ -10,16 +10,20 @@ const output = path.resolve(option('--output', 'data/teacher-selfplay-round1-pik
 const binary = option('--pikafish', process.env.PIKAFISH_PATH);
 const limit = Number(option('--positions', 2400));
 const moveTime = Number(option('--movetime', 1000));
+const nodeBudgetValue = option('--nodes', null);
+const nodeBudget = nodeBudgetValue === null ? null : Number(nodeBudgetValue);
 const seed = Number(option('--seed', 20260930));
 const phaseOnly = option('--phase', null);
 const resume = args.includes('--resume');
 const planOnly = args.includes('--plan-only');
 const excludeFiles = args.flatMap((item, index) => item === '--exclude-teacher' ? [path.resolve(args[index + 1])] : []);
 
-if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(moveTime) || moveTime < 20 ||
+if (!Number.isInteger(limit) || limit < 1 ||
+    (nodeBudget === null && (!Number.isInteger(moveTime) || moveTime < 20)) ||
+    (nodeBudget !== null && (!Number.isInteger(nodeBudget) || nodeBudget < 1)) ||
     (phaseOnly && !['opening', 'middlegame', 'endgame'].includes(phaseOnly)) ||
     !Number.isInteger(seed) || (resume && planOnly) || (!planOnly && !binary)) {
-  console.error('Usage: node label-selfplay-pikafish.js --pikafish /path/to/Pikafish [--phase middlegame] [--positions 2400] [--movetime 1000] [--exclude-teacher data/teacher.jsonl] [--resume]');
+  console.error('Usage: node label-selfplay-pikafish.js --pikafish /path/to/Pikafish [--phase middlegame] [--positions 2400] [--movetime 1000 | --nodes 50000] [--exclude-teacher data/teacher.jsonl] [--resume]');
   process.exit(2);
 }
 
@@ -73,7 +77,8 @@ function selectPositions() {
 async function main() {
   const { selected, summary } = selectPositions();
   const metadata = { kind: 'meta', model: 'Pikafish', source: 'Jev self-play positions re-labelled by Pikafish',
-    teacherBinarySha256: binary ? fileHash(binary) : null, positions: selected.length, moveTime, seed,
+    teacherBinarySha256: binary ? fileHash(binary) : null, positions: selected.length,
+    budget: nodeBudget === null ? { moveTime } : { nodes: nodeBudget }, seed,
     sampling: phaseOnly ? `unique self-play ${phaseOnly} positions` : 'unique self-play positions, phase quotas 25/50/25',
     excludeSources: excludeFiles.map(filename => ({ file: path.basename(filename), sha256: fileHash(filename) })), ...summary };
   if (planOnly) { console.log(JSON.stringify(metadata)); return; }
@@ -96,10 +101,11 @@ async function main() {
     for (let index = done; index < selected.length; index++) {
       const sample = selected[index];
       teacher.send('ucinewgame');
-      const analysis = await teacher.analyse(sample.fen, moveTime);
+      const analysis = await teacher.analyse(sample.fen, nodeBudget === null ? moveTime : { nodes: nodeBudget });
       if (!sample.legal.includes(analysis.best)) throw new Error(`Illegal teacher move at sample ${index}`);
       appendFileSync(output, JSON.stringify({ kind: 'position', ...sample, source: 'selfplay-relabelled-pikafish',
-        best: analysis.best, candidates: analysis.candidates.filter(item => sample.legal.includes(item.move)), depth: analysis.depth }) + '\n');
+        best: analysis.best, candidates: analysis.candidates.filter(item => sample.legal.includes(item.move)), depth: analysis.depth,
+        selectiveDepth: analysis.selectiveDepth, nodes: analysis.nodes }) + '\n');
       if ((index + 1) % 100 === 0 || index + 1 === selected.length) console.log(`${index + 1}/${selected.length} labelled`);
     }
   } finally { teacher.close(); }
