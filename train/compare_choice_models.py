@@ -28,12 +28,15 @@ def main():
     parser.add_argument("--bootstrap", type=int, default=2000)
     parser.add_argument("--batch", type=int, default=128)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--phase", choices=["opening", "middlegame", "endgame"])
     args = parser.parse_args()
     if args.bootstrap < 1:
         parser.error("--bootstrap must be positive")
     if args.test_source_index is not None and not (0 <= args.test_source_index < len(args.data)):
         parser.error("--test-source-index is outside the --data sources")
     _, _, _, test = choice.split_rows(choice.load_teacher_sources(args.data, args.history_data), args.seed)
+    if args.phase:
+        test = [row for row in test if choice.game_phase(row["fen"]) == args.phase]
     if args.test_source_index is not None:
         test = [row for row in test if (str(row["game"]).split(":", 1)[0] if len(args.data) > 1 else "0") == str(args.test_source_index)]
     excluded = {" ".join(row["fen"].split()[:2])
@@ -67,7 +70,7 @@ def main():
         samples.append((sum(item[0] for item in selected) / len(selected),
                         sum(item[1] for item in selected) / len(selected)))
     print(json.dumps({
-        "positions": len(test), "games": len(games), "bootstrapSamples": args.bootstrap,
+        "positions": len(test), "games": len(games), "phase": args.phase, "bootstrapSamples": args.bootstrap,
         "testSourceIndex": args.test_source_index,
         "modelA": {"path": args.model_a, "sha256": choice.sha256_file(args.model_a), "metrics": metrics["a"]},
         "modelB": {"path": args.model_b, "sha256": choice.sha256_file(args.model_b), "metrics": metrics["b"]},

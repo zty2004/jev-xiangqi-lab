@@ -14,6 +14,20 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 PIECES = "KABNRCPkabnrcp"
 FILES = "abcdefghi"
+PHASE_UNITS = {"r": 4, "c": 2, "n": 2, "b": 1, "a": 1, "p": 0, "k": 0}
+
+
+def game_phase(fen):
+    tokens = fen.split()
+    board = board_pieces(fen, tokens[1])
+    units = sum(PHASE_UNITS[piece.lower()] for piece in board if piece != ".")
+    non_kings = sum(piece.lower() != "k" for piece in board if piece != ".")
+    fullmove = int(tokens[5]) if len(tokens) >= 6 else 1
+    if units <= 12 or non_kings <= 8:
+        return "endgame"
+    if fullmove <= 12 and units >= 32:
+        return "opening"
+    return "middlegame"
 
 
 def sha256_file(filename):
@@ -605,6 +619,8 @@ def main():
     evaluate_parser.add_argument("--exclude-data", action="append", default=[],
                                  help="exclude FENs found in this JSONL file; repeat for multiple prior training sources")
     evaluate_parser.add_argument("--history-data", help="history labels for the final teacher file")
+    evaluate_parser.add_argument("--phase", choices=["opening", "middlegame", "endgame"],
+                                 help="report only this phase from the fixed held-out split")
     args = parser.parse_args()
     if args.command == "train":
         if not 0 <= args.value_loss_weight <= 1:
@@ -616,12 +632,15 @@ def main():
         if args.command == "evaluate":
             rows = load_teacher_sources(args.data, args.history_data)
             _, _, _, test = split_rows(rows, args.seed)
+            if args.phase:
+                test = [row for row in test if game_phase(row["fen"]) == args.phase]
             if args.exclude_data:
                 excluded = {" ".join(row["fen"].split()[:2]) for filename in args.exclude_data
                             for row in load_rows(filename)}
                 test = [row for row in test if " ".join(row["fen"].split()[:2]) not in excluded]
             predictions = collect_predictions(model, test, device, args.batch)
-            print(json.dumps({"temperature": temperature, "test": policy_metrics(predictions, temperature),
+            print(json.dumps({"temperature": temperature, "phase": args.phase,
+                              "test": policy_metrics(predictions, temperature),
                               "test_wdl": wdl_metrics(model, test, device, args.batch)}))
         elif args.command == "rank":
             print(json.dumps(rank(model, args.fen, args.moves.split(","), device, temperature), ensure_ascii=False))

@@ -16,6 +16,11 @@ spec.loader.exec_module(choice_model)
 
 
 class ChoiceModelTests(unittest.TestCase):
+    def test_game_phase_matches_engine_thresholds(self):
+        self.assertEqual(choice_model.game_phase("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"), "opening")
+        self.assertEqual(choice_model.game_phase("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 20"), "middlegame")
+        self.assertEqual(choice_model.game_phase("4k4/9/9/9/4p4/9/9/9/9/R3K4 w - - 0 40"), "endgame")
+
     def test_horizontal_mirror_is_an_involution_for_fen_and_moves(self):
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
         self.assertEqual(choice_model.mirror_fen(choice_model.mirror_fen(fen)), fen)

@@ -11,13 +11,15 @@ const binary = option('--pikafish', process.env.PIKAFISH_PATH);
 const limit = Number(option('--positions', 2400));
 const moveTime = Number(option('--movetime', 1000));
 const seed = Number(option('--seed', 20260930));
+const phaseOnly = option('--phase', null);
 const resume = args.includes('--resume');
 const planOnly = args.includes('--plan-only');
 const excludeFiles = args.flatMap((item, index) => item === '--exclude-teacher' ? [path.resolve(args[index + 1])] : []);
 
 if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(moveTime) || moveTime < 20 ||
+    (phaseOnly && !['opening', 'middlegame', 'endgame'].includes(phaseOnly)) ||
     !Number.isInteger(seed) || (resume && planOnly) || (!planOnly && !binary)) {
-  console.error('Usage: node label-selfplay-pikafish.js --pikafish /path/to/Pikafish [--positions 2400] [--movetime 1000] [--exclude-teacher data/teacher.jsonl] [--resume]');
+  console.error('Usage: node label-selfplay-pikafish.js --pikafish /path/to/Pikafish [--phase middlegame] [--positions 2400] [--movetime 1000] [--exclude-teacher data/teacher.jsonl] [--resume]');
   process.exit(2);
 }
 
@@ -53,8 +55,10 @@ function selectPositions() {
     seen.add(key);
     phases.get(row.phase).push({ game: row.game, ply: row.ply, fen: row.fen, legal: row.legal, phase: row.phase });
   }
-  const quotas = { opening: Math.floor(limit * 0.25), middlegame: Math.floor(limit * 0.50) };
-  quotas.endgame = limit - quotas.opening - quotas.middlegame;
+  const quotas = phaseOnly ? { opening: 0, middlegame: 0, endgame: 0 } :
+    { opening: Math.floor(limit * 0.25), middlegame: Math.floor(limit * 0.50), endgame: 0 };
+  if (phaseOnly) quotas[phaseOnly] = limit;
+  else quotas.endgame = limit - quotas.opening - quotas.middlegame;
   const random = randomGenerator(seed), selected = [];
   for (const [phase, quota] of Object.entries(quotas)) {
     const candidates = phases.get(phase);
@@ -70,7 +74,7 @@ async function main() {
   const { selected, summary } = selectPositions();
   const metadata = { kind: 'meta', model: 'Pikafish', source: 'Jev self-play positions re-labelled by Pikafish',
     teacherBinarySha256: binary ? fileHash(binary) : null, positions: selected.length, moveTime, seed,
-    sampling: 'unique self-play positions, phase quotas 25/50/25',
+    sampling: phaseOnly ? `unique self-play ${phaseOnly} positions` : 'unique self-play positions, phase quotas 25/50/25',
     excludeSources: excludeFiles.map(filename => ({ file: path.basename(filename), sha256: fileHash(filename) })), ...summary };
   if (planOnly) { console.log(JSON.stringify(metadata)); return; }
   let done = 0;
