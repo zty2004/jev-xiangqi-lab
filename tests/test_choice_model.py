@@ -53,6 +53,19 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertEqual(float(logits[0, 2].detach()), -1e9)
         self.assertTrue(torch.isfinite(logits[mask]).all())
 
+    def test_policy_planes_cover_legal_xiangqi_displacements(self):
+        self.assertEqual(len(choice_model.MOVE_DELTAS), 50)
+        model = choice_model.ChoiceNet(32, 2, policy_features="planes")
+        boards = torch.randn(2, 16, 10, 9)
+        moves = torch.tensor([[[0, 8], [20, 39], [0, 0]], [[89, 80], [44, 25], [10, 21]]])
+        mask = torch.tensor([[True, True, False], [True, True, True]])
+        logits, values = model(boards, moves, mask)
+        self.assertEqual(tuple(logits.shape), (2, 3))
+        self.assertEqual(tuple(values.shape), (2,))
+        self.assertEqual(float(logits[0, 2].detach()), -1e9)
+        for source, target in moves[mask].tolist():
+            self.assertGreaterEqual(choice_model.move_plane_index(source, target), 0)
+
     def test_horizontal_mirror_is_an_involution_for_fen_and_moves(self):
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
         self.assertEqual(choice_model.mirror_fen(choice_model.mirror_fen(fen)), fen)

@@ -15,6 +15,13 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 PIECES = "KABNRCPkabnrcp"
 FILES = "abcdefghi"
 PHASE_UNITS = {"r": 4, "c": 2, "n": 2, "b": 1, "a": 1, "p": 0, "k": 0}
+MOVE_DELTAS = ([(dx, 0) for dx in range(-8, 9) if dx] +
+               [(0, dy) for dy in range(-9, 10) if dy] +
+               [(dx, dy) for dx, dy in ((-2, -1), (-2, 1), (-1, -2), (-1, 2),
+                                         (1, -2), (1, 2), (2, -1), (2, 1))] +
+               [(dx, dy) for dy in (-1, 1) for dx in (-1, 1)] +
+               [(dx, dy) for dy in (-2, 2) for dx in (-2, 2)])
+MOVE_DELTA_INDEX = {delta: index for index, delta in enumerate(MOVE_DELTAS)}
 
 
 def game_phase(fen):
@@ -114,6 +121,13 @@ def mirror_fen(fen):
 
 def encode_moves(moves, turn):
     return torch.tensor([[square_index(move[:2], turn), square_index(move[2:], turn)] for move in moves], dtype=torch.long)
+
+
+def move_plane_index(source, target):
+    delta = (target % 9 - source % 9, target // 9 - source // 9)
+    if delta not in MOVE_DELTA_INDEX:
+        raise ValueError(f"unsupported Xiangqi move displacement: {delta}")
+    return MOVE_DELTA_INDEX[delta]
 
 
 def target_distribution(row, best_weight=0.3):
@@ -233,6 +247,14 @@ class ChoiceNet(nn.Module):
             self.policy_target = nn.Conv2d(channels, policy_channels, 1)
             self.policy_geometry = nn.Linear(4, 1)
             self.policy_scale = math.sqrt(policy_channels)
+        elif policy_features == "planes":
+            self.policy_planes = nn.Sequential(
+                nn.Conv2d(channels, 32, 3, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+                nn.Conv2d(32, len(MOVE_DELTAS), 1))
+            lookup = torch.full((19, 17), -1, dtype=torch.long)
+            for (dx, dy), index in MOVE_DELTA_INDEX.items():
+                lookup[dy + 9, dx + 8] = index
+            self.register_buffer("move_plane_lookup", lookup)
         else:
             policy_inputs = channels * 3 if policy_features == "v1" else channels * 5 + 4
             self.policy = nn.Sequential(nn.Linear(policy_inputs, channels * 2), nn.ReLU(), nn.Linear(channels * 2, 1))
@@ -258,6 +280,15 @@ class ChoiceNet(nn.Module):
             source = policy_source.gather(1, moves[:, :, 0].clamp(min=0).unsqueeze(-1).expand(batch, count, policy_channels))
             target = policy_target.gather(1, moves[:, :, 1].clamp(min=0).unsqueeze(-1).expand(batch, count, policy_channels))
             logits = (source * target).sum(dim=-1) / self.policy_scale + self.policy_geometry(geometry).squeeze(-1)
+        elif self.policy_features == "planes":
+            action_planes = self.policy_planes(features).permute(0, 2, 3, 1).reshape(batch, 90, len(MOVE_DELTAS))
+            source_actions = action_planes.gather(1, moves[:, :, 0].clamp(min=0).unsqueeze(-1)
+                                                  .expand(batch, count, len(MOVE_DELTAS)))
+            plane_index = self.move_plane_lookup[(target_y - source_y + 9).clamp(0, 18),
+                                                 (target_x - source_x + 8).clamp(0, 16)]
+            if bool((plane_index[mask] < 0).any()):
+                raise ValueError("legal move cannot be represented by the policy planes")
+            logits = source_actions.gather(2, plane_index.clamp(min=0).unsqueeze(-1)).squeeze(-1)
         else:
             source = flat.gather(1, source_index)
             target = flat.gather(1, target_index)
@@ -693,7 +724,7 @@ def main():
     train_parser.add_argument("--min-lr", type=float, default=1e-6)
     train_parser.add_argument("--channels", type=int, default=64)
     train_parser.add_argument("--blocks", type=int, default=4)
-    train_parser.add_argument("--policy-features", choices=["v1", "v2", "attention"], default="v1")
+    train_parser.add_argument("--policy-features", choices=["v1", "v2", "attention", "planes"], default="v1")
     train_parser.add_argument("--seed", type=int, default=20260923)
     train_parser.add_argument("--device", default="auto")
     rank_parser = sub.add_parser("rank")
