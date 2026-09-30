@@ -218,14 +218,17 @@ class ResidualBlock(nn.Module):
 
 
 class ChoiceNet(nn.Module):
-    def __init__(self, channels=64, blocks=4, input_channels=16, value_head="scalar", value_loss_weight=0.2):
+    def __init__(self, channels=64, blocks=4, input_channels=16, value_head="scalar", value_loss_weight=0.2,
+                 policy_features="v1"):
         super().__init__()
         self.input_channels = input_channels
         self.value_head = value_head
         self.value_loss_weight = value_loss_weight
+        self.policy_features = policy_features
         self.stem = nn.Sequential(nn.Conv2d(input_channels, channels, 3, padding=1), nn.BatchNorm2d(channels), nn.ReLU())
         self.blocks = nn.Sequential(*(ResidualBlock(channels) for _ in range(blocks)))
-        self.policy = nn.Sequential(nn.Linear(channels * 3, channels * 2), nn.ReLU(), nn.Linear(channels * 2, 1))
+        policy_inputs = channels * 3 if policy_features == "v1" else channels * 5 + 4
+        self.policy = nn.Sequential(nn.Linear(policy_inputs, channels * 2), nn.ReLU(), nn.Linear(channels * 2, 1))
         self.value = nn.Sequential(nn.Linear(channels, channels), nn.ReLU(),
                                    nn.Linear(channels, 3 if value_head == "wdl" else 1),
                                    *([] if value_head == "wdl" else [nn.Tanh()]))
@@ -240,7 +243,14 @@ class ChoiceNet(nn.Module):
         target = flat.gather(1, target_index)
         pooled = features.mean(dim=(2, 3))
         pooled_moves = pooled.unsqueeze(1).expand(-1, count, -1)
-        logits = self.policy(torch.cat((source, target, pooled_moves), dim=-1)).squeeze(-1)
+        policy_input = torch.cat((source, target, pooled_moves), dim=-1)
+        if self.policy_features == "v2":
+            source_x, source_y = moves[:, :, 0] % 9, moves[:, :, 0] // 9
+            target_x, target_y = moves[:, :, 1] % 9, moves[:, :, 1] // 9
+            geometry = torch.stack((source_x / 8, source_y / 9,
+                                    (target_x - source_x) / 8, (target_y - source_y) / 9), dim=-1)
+            policy_input = torch.cat((policy_input, target - source, target * source, geometry), dim=-1)
+        logits = self.policy(policy_input).squeeze(-1)
         logits = logits.masked_fill(~mask, -1e9)
         value = self.value(pooled)
         if self.value_head == "scalar":
@@ -486,7 +496,8 @@ def train(args):
     train_loader = DataLoader(train_dataset,
                               batch_size=args.batch, shuffle=sampler is None, sampler=sampler, collate_fn=collate)
     validation_loader = DataLoader(TeacherDataset(validation, input_channels, args.value_head, args.policy_target), batch_size=args.batch, collate_fn=collate)
-    model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head, args.value_loss_weight).to(device)
+    model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head, args.value_loss_weight,
+                      args.policy_features).to(device)
     if args.init_model:
         initial = torch.load(args.init_model, map_location=device, weights_only=True)
         expected = {"channels": args.channels, "blocks": args.blocks, "input_channels": input_channels,
@@ -494,7 +505,7 @@ def train(args):
         actual = {key: initial.get(key) for key in expected}
         if actual != expected:
             raise ValueError(f"initial model architecture mismatch: expected {expected}, got {actual}")
-        model.load_state_dict(initial["state_dict"], strict=True)
+        initialize_from_checkpoint(model, initial)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     print(f"device={device} train={len(training)} validation={len(validation)} calibration={len(calibration)} test={len(test)}", flush=True)
     best_loss = float("inf")
@@ -520,6 +531,7 @@ def train(args):
             stale_epochs = 0
             torch.save({"state_dict": model.state_dict(), "channels": args.channels, "blocks": args.blocks,
                         "input_channels": input_channels, "value_head": args.value_head,
+                        "policy_features": args.policy_features,
                         "value_loss_weight": args.value_loss_weight, "policy_target": args.policy_target,
                         "selection_metric": args.selection_metric,
                         "mirror_augmentation": args.mirror_augmentation,
@@ -559,10 +571,30 @@ def load_model(filename, device):
     checkpoint = torch.load(filename, map_location=device, weights_only=True)
     model = ChoiceNet(checkpoint["channels"], checkpoint["blocks"],
                       checkpoint.get("input_channels", 16), checkpoint.get("value_head", "scalar"),
-                      checkpoint.get("value_loss_weight", 0.2)).to(device)
+                      checkpoint.get("value_loss_weight", 0.2), checkpoint.get("policy_features", "v1")).to(device)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
     return model, float(checkpoint.get("temperature", 1.0))
+
+
+def initialize_from_checkpoint(model, checkpoint):
+    source_features = checkpoint.get("policy_features", "v1")
+    if source_features == model.policy_features:
+        model.load_state_dict(checkpoint["state_dict"], strict=True)
+        return
+    if source_features != "v1" or model.policy_features != "v2":
+        raise ValueError(f"unsupported policy feature migration: {source_features} to {model.policy_features}")
+    source = checkpoint["state_dict"]
+    target = model.state_dict()
+    for key, value in source.items():
+        if key == "policy.0.weight":
+            target[key].zero_()
+            target[key][:, :value.shape[1]].copy_(value)
+        elif target[key].shape == value.shape:
+            target[key].copy_(value)
+        else:
+            raise ValueError(f"cannot migrate checkpoint tensor {key}: {value.shape} to {target[key].shape}")
+    model.load_state_dict(target, strict=True)
 
 
 def rank(model, fen, moves, device, temperature=1.0, history=None):
@@ -619,6 +651,7 @@ def main():
     train_parser.add_argument("--lr", type=float, default=1e-3)
     train_parser.add_argument("--channels", type=int, default=64)
     train_parser.add_argument("--blocks", type=int, default=4)
+    train_parser.add_argument("--policy-features", choices=["v1", "v2"], default="v1")
     train_parser.add_argument("--seed", type=int, default=20260923)
     train_parser.add_argument("--device", default="auto")
     rank_parser = sub.add_parser("rank")

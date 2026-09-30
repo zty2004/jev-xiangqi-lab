@@ -25,6 +25,23 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertEqual(choice_model.source_index({"game": "3:game-7"}), 3)
         self.assertEqual(choice_model.source_index({"game": 12}), 0)
 
+    def test_v1_checkpoint_migrates_to_v2_without_changing_logits(self):
+        torch.manual_seed(7)
+        original = choice_model.ChoiceNet(16, 1, policy_features="v1")
+        checkpoint = {"state_dict": original.state_dict(), "policy_features": "v1"}
+        migrated = choice_model.ChoiceNet(16, 1, policy_features="v2")
+        choice_model.initialize_from_checkpoint(migrated, checkpoint)
+        boards = torch.randn(2, 16, 10, 9)
+        moves = torch.tensor([[[0, 1], [20, 29]], [[89, 80], [44, 36]]])
+        mask = torch.ones((2, 2), dtype=torch.bool)
+        original.eval()
+        migrated.eval()
+        with torch.no_grad():
+            old_logits, old_value = original(boards, moves, mask)
+            new_logits, new_value = migrated(boards, moves, mask)
+        self.assertTrue(torch.equal(old_logits, new_logits))
+        self.assertTrue(torch.equal(old_value, new_value))
+
     def test_horizontal_mirror_is_an_involution_for_fen_and_moves(self):
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
         self.assertEqual(choice_model.mirror_fen(choice_model.mirror_fen(fen)), fen)
