@@ -1,0 +1,58 @@
+{
+  "kind": "choice-model-training-summary",
+  "teacher": {
+    "positions": 150000,
+    "games": 26404,
+    "nodesPerPosition": 250000,
+    "sha256": "5eb33d7979b6be7f1fcb8454643ae085cfc4c5e723448b3ede6f99eeed477a6b"
+  },
+  "split": {
+    "training": 105024,
+    "validation": 15015,
+    "calibration": 15008,
+    "test": 14953,
+    "testGames": 2641,
+    "gameDisjoint": true
+  },
+  "production": {
+    "model": "choice-selfplay-round1-finetune-gpu0.pt",
+    "sha256": "4542669dabdc0b97ba83811287e6ad43d73b4bbc83d0910ef12755739fbc834d",
+    "fixedNodeTest": {
+      "top1": 0.24095499230923562,
+      "top3": 0.43529726476292385,
+      "top5": 0.5529325219019595,
+      "nll": 2.778786981796145
+    },
+    "priorIndependentTop1": 0.3424291064740503
+  },
+  "candidates": [
+    {
+      "model": "choice-middle-150k-finetune-64x4-v1-gpu0.pt",
+      "sha256": "ffcd66ed847298b67f19a3f7c5c9c6446dcfcb15070e49bf1e7ed5870cbe17e5",
+      "fixedNodeTest": {
+        "top1": 0.2844245301946098,
+        "top3": 0.5103323747742928,
+        "top5": 0.6340533672172808,
+        "nll": 2.5265500468703275
+      },
+      "top1GainVsProduction": 0.043469537885374165,
+      "top1Gain95GameBootstrap": [0.03704944392335522, 0.049753891179992016],
+      "priorIndependentTop1": 0.31086142322097376
+    },
+    {
+      "model": "choice-middle-150k-128x8-v1-gpu0.pt",
+      "sha256": "1c9f89c1fd39b096209903cf08ff26bb23f577f05c49195c323b77a1294a9d2e",
+      "fixedNodeTest": {
+        "top1": 0.30421988898548785,
+        "top3": 0.5364809737176486,
+        "top5": 0.65639002206915,
+        "nll": 2.4474658903303967
+      },
+      "top1GainVsProduction": 0.06326489667625224,
+      "top1Gain95GameBootstrap": [0.05573770491803279, 0.07125652348454437],
+      "priorIndependentTop1": 0.3172819689673622
+    }
+  ],
+  "decision": "Do not promote either candidate. Both improve the new fixed-node distribution conclusively but regress the prior independent middlegame test. The best strict fixed-node top-1 is 30.42%, below the 50% goal.",
+  "next": "Evaluate a Xiangqi action-plane policy head, then move from single-position distillation toward PV continuation and search-aware supervision if the structural pilot does not improve the strict test."
+}
