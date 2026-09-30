@@ -7,6 +7,7 @@ import { chineseMove, formatChineseLine, formatChineseMove } from './src/chinese
 import { LocalChoice } from './src/local-choice.js';
 import { currentChoiceModel, currentNnueModel } from './src/model-selection.js';
 import { loadMasterOpeningBook, masterOpeningCandidates } from './src/opening-book.js';
+import { rankRecommendations } from './src/recommendation-ranking.js';
 import { gameResult, isInCheck, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -52,12 +53,14 @@ function startAnalysisWorker(position, history, timeMs, multiPv, allowedRootMove
 
 function analysisView(position, analysis, priors, count) {
   const redScore = score => position.side === 'red' ? score : -score;
-  return { recommendations: analysis.candidates.slice(0, count).map(item => ({
+  const candidates = rankRecommendations(analysis.candidates).slice(0, count);
+  const bestScore = candidates[0]?.score ?? analysis.score;
+  return { recommendations: candidates.map(item => ({
     move: item.move, notation: formatChineseMove(position, item.move), score: item.score,
     pv: item.pv || [item.move], pvNotation: formatChineseLine(position, item.pv || [item.move]),
     ...(priors ? { probability: priors.get(item.move) || 0 } : {})
   })), phase: analysis.phase, depth: analysis.depth, nodes: analysis.nodes,
-  pruned: analysis.pruned, reduced: analysis.reduced, timeMs: analysis.timeMs, score: redScore(analysis.score),
+  pruned: analysis.pruned, reduced: analysis.reduced, timeMs: analysis.timeMs, score: redScore(bestScore),
   recommendationSide: position.side };
 }
 

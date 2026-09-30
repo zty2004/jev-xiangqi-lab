@@ -44,7 +44,7 @@ function point(name) {
 function renderRecommendations() {
   const overlay = $('recommendation-overlay'), list = $('recommendations');
   overlay.replaceChildren(); list.replaceChildren();
-  $('analysis-depth').textContent = analysis?.fen === state?.fen ? `深度 ${analysis.depth}` : '';
+  $('analysis-depth').textContent = analysis?.fen === state?.fen ? `深度 ${analysis.depth} 层（半回合）` : '';
   const active = mode === 'teach' && analysis?.fen === state?.fen;
   const score = active ? analysis.score : 0;
   const decisive = Math.abs(score) >= 29_000;
@@ -53,7 +53,8 @@ function renderRecommendations() {
     `${score >= 0 ? '红方 +' : '黑方 +'}${Math.abs(score)}` : '等待第一层搜索';
   if (!active) return;
   const colors = ['#a74934', '#246a79', '#6657a5', '#9a6b23', '#39714d'];
-  const visibleRecommendations = analysis.recommendations.slice(0, Number($('recommendation-count').value));
+  const visibleRecommendations = [...analysis.recommendations].sort((left, right) => right.score - left.score)
+    .slice(0, Number($('recommendation-count').value));
   const recommendationSide = analysis.recommendationSide === 'black' ? '黑方' : '红方';
   const sharedTargets = new Map();
   for (const [index, item] of visibleRecommendations.entries()) {
