@@ -66,6 +66,12 @@ class ChoiceModelTests(unittest.TestCase):
         for source, target in moves[mask].tolist():
             self.assertGreaterEqual(choice_model.move_plane_index(source, target), 0)
 
+    def test_row_training_weight_multiplies_source_weight(self):
+        rows = [{"game": "0:game", "trainingWeight": 0.15},
+                {"game": "1:game"}, {"game": "0:other", "source": "opening-book"}]
+        self.assertEqual(choice_model.source_sample_weights(rows, {0: 2.0, 1: 3.0}),
+                         [0.3, 3.0, 1.0])
+
     def test_horizontal_mirror_is_an_involution_for_fen_and_moves(self):
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
         self.assertEqual(choice_model.mirror_fen(choice_model.mirror_fen(fen)), fen)

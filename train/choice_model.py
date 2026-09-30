@@ -392,8 +392,9 @@ def split_rows(rows, seed):
 
 def source_sample_weights(rows, source_weights):
     """Weights affect training draws only; held-out game splits stay unchanged."""
-    return [1.0 if row.get("source") == "opening-book" else
-            source_weights.get(int(str(row["game"]).split(":", 1)[0]), 1.0)
+    return [(1.0 if row.get("source") == "opening-book" else
+             source_weights.get(int(str(row["game"]).split(":", 1)[0]), 1.0)) *
+            float(row.get("trainingWeight", 1.0))
             for row in rows]
 
 
@@ -520,6 +521,13 @@ def train(args):
         source_weights[index] = weight
     rows = load_teacher_sources(args.data, args.history_data)
     training, validation, calibration, test = split_rows(rows, args.seed)
+    training_only_sources = set(args.training_only_row_source)
+    if training_only_sources:
+        validation = [row for row in validation if row.get("source") not in training_only_sources]
+        calibration = [row for row in calibration if row.get("source") not in training_only_sources]
+        test = [row for row in test if row.get("source") not in training_only_sources]
+        if not all((validation, calibration, test)):
+            raise ValueError("training-only row sources removed an entire held-out split")
     if args.validation_source_index is not None:
         if not 0 <= args.validation_source_index < len(args.data):
             raise ValueError("validation source index is outside the teacher sources")
@@ -539,7 +547,8 @@ def train(args):
     input_channels = 46 if args.history_data else 16
     if args.value_head == "wdl" and not args.history_data:
         raise ValueError("WDL training requires game outcome labels")
-    sample_weights = source_sample_weights(training, source_weights) if source_weights else None
+    weighted_rows = source_weights or any(float(row.get("trainingWeight", 1.0)) != 1.0 for row in training)
+    sample_weights = source_sample_weights(training, source_weights) if weighted_rows else None
     if sample_weights and args.mirror_augmentation:
         sample_weights = [weight for weight in sample_weights for _ in range(2)]
     sampler = (WeightedRandomSampler(sample_weights, len(sample_weights), replacement=True,
@@ -603,6 +612,7 @@ def train(args):
                         "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
                         "source_weights": source_weights,
+                        "training_only_row_sources": sorted(training_only_sources),
                         "initial_model": ({"file": str(args.init_model), "sha256": sha256_file(args.init_model)}
                                           if args.init_model else None),
                         "teacher_sources": [{"file": str(filename), "sha256": sha256_file(filename)} for filename in args.data],
@@ -707,6 +717,8 @@ def main():
                               help="add a horizontally mirrored copy of every training position")
     train_parser.add_argument("--source-weight", action="append", default=[],
                               help="training-only sampling weight INDEX:WEIGHT for a --data source; repeatable")
+    train_parser.add_argument("--training-only-row-source", action="append", default=[],
+                              help="keep rows with this source in training but omit them from held-out metrics")
     train_parser.add_argument("--validation-source-index", type=int,
                               help="choose checkpoints using only this --data source from the fixed validation split")
     train_parser.add_argument("--init-model", help="compatible checkpoint used to initialize fine-tuning")
