@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from train.expand_pv_training import PV_SOURCE
+PV_SOURCE = "pikafish-pv-continuation"
 
 
 def combine(filenames: list[str]) -> tuple[dict, list[dict]]:
