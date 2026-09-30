@@ -21,6 +21,10 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertEqual(choice_model.game_phase("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 20"), "middlegame")
         self.assertEqual(choice_model.game_phase("4k4/9/9/9/4p4/9/9/9/9/R3K4 w - - 0 40"), "endgame")
 
+    def test_source_index_recovers_prefixed_multi_source_games(self):
+        self.assertEqual(choice_model.source_index({"game": "3:game-7"}), 3)
+        self.assertEqual(choice_model.source_index({"game": 12}), 0)
+
     def test_horizontal_mirror_is_an_involution_for_fen_and_moves(self):
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
         self.assertEqual(choice_model.mirror_fen(choice_model.mirror_fen(fen)), fen)

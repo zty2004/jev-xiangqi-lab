@@ -341,6 +341,11 @@ def source_sample_weights(rows, source_weights):
             for row in rows]
 
 
+def source_index(row):
+    game = str(row["game"])
+    return int(game.split(":", 1)[0]) if ":" in game else 0
+
+
 def select_device(name):
     if name != "auto":
         return torch.device(name)
@@ -453,6 +458,12 @@ def train(args):
         source_weights[index] = weight
     rows = load_teacher_sources(args.data, args.history_data)
     training, validation, calibration, test = split_rows(rows, args.seed)
+    if args.validation_source_index is not None:
+        if not 0 <= args.validation_source_index < len(args.data):
+            raise ValueError("validation source index is outside the teacher sources")
+        validation = [row for row in validation if source_index(row) == args.validation_source_index]
+        if not validation:
+            raise ValueError("validation source has no positions in the fixed split")
     if args.opening_data:
         opening_rows = [row for row in load_rows(args.opening_data) if row.get("source") == "opening-book" and row.get("policy")]
         heldout_keys = {" ".join(row["fen"].split()[:2]) for row in validation + calibration + test}
@@ -592,6 +603,8 @@ def main():
                               help="add a horizontally mirrored copy of every training position")
     train_parser.add_argument("--source-weight", action="append", default=[],
                               help="training-only sampling weight INDEX:WEIGHT for a --data source; repeatable")
+    train_parser.add_argument("--validation-source-index", type=int,
+                              help="choose checkpoints using only this --data source from the fixed validation split")
     train_parser.add_argument("--init-model", help="compatible checkpoint used to initialize fine-tuning")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
     train_parser.add_argument("--output", default="choice-model.pt")
