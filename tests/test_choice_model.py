@@ -170,6 +170,10 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertAlmostEqual(metrics["brier"], 0.5)
         self.assertAlmostEqual(metrics["mean_top_probability"], 0.5)
         self.assertAlmostEqual(metrics["ece10"], 0.0)
+        self.assertAlmostEqual(metrics["top1"], 0.5)
+        self.assertAlmostEqual(metrics["top3"], 1.0)
+        self.assertAlmostEqual(metrics["top5"], 1.0)
+        self.assertAlmostEqual(metrics["mean_reciprocal_rank"], 0.75)
 
     def test_temperature_reduces_overconfidence(self):
         predictions = [(torch.tensor([4.0, 0.0]), best) for best in [0, 1, 0, 1]]

@@ -427,16 +427,21 @@ def wdl_metrics(model, rows, device, batch_size):
 def policy_metrics(predictions, temperature):
     if not predictions:
         raise ValueError("no positions to evaluate")
-    nll = brier = hits = confidence_sum = 0.0
+    nll = brier = hits = top3_hits = top5_hits = reciprocal_rank = confidence_sum = 0.0
     bins = [[0, 0.0, 0.0] for _ in range(10)]
     for logits, best in predictions:
         probabilities = torch.softmax(logits / temperature, dim=0)
-        chosen = int(probabilities.argmax())
+        ranking = torch.argsort(probabilities, descending=True)
+        chosen = int(ranking[0])
         hit = float(chosen == best)
+        rank = int((ranking == best).nonzero(as_tuple=True)[0][0]) + 1
         confidence = float(probabilities[chosen])
         nll -= math.log(max(float(probabilities[best]), 1e-30))
         brier += float((probabilities.square().sum() - 2 * probabilities[best] + 1).item())
         hits += hit
+        top3_hits += float(rank <= 3)
+        top5_hits += float(rank <= 5)
+        reciprocal_rank += 1 / rank
         confidence_sum += confidence
         bucket = bins[min(9, int(confidence * 10))]
         bucket[0] += 1
@@ -444,7 +449,8 @@ def policy_metrics(predictions, temperature):
         bucket[2] += hit
     count = len(predictions)
     ece = sum(abs(accuracy - confidence) for size, confidence, accuracy in bins if size) / count
-    return {"count": count, "top1": hits / count, "nll": nll / count,
+    return {"count": count, "top1": hits / count, "top3": top3_hits / count,
+            "top5": top5_hits / count, "mean_reciprocal_rank": reciprocal_rank / count, "nll": nll / count,
             "brier": brier / count, "mean_top_probability": confidence_sum / count, "ece10": ece}
 
 
