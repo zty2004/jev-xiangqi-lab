@@ -43,7 +43,7 @@ train_candidate() {
 }
 
 train_candidate choice-middle-150k-finetune-64x4-v1-gpu0 64 4 v1 256 0.00005 "$base"
-train_candidate choice-middle-150k-128x8-v2-gpu0 128 8 v2 256 0.0002
+train_candidate choice-middle-150k-128x8-attention-gpu0 128 8 attention 256 0.0002
 
 old_teacher=(
   --data data/teacher-openings-5000.jsonl
@@ -51,7 +51,7 @@ old_teacher=(
   --data data/teacher-selfplay-middle-2400-pikafish.jsonl
   --data data/teacher-ccpd-middle-4000-pikafish.jsonl
 )
-for name in choice-middle-150k-finetune-64x4-v1-gpu0 choice-middle-150k-128x8-v2-gpu0; do
+for name in choice-middle-150k-finetune-64x4-v1-gpu0 choice-middle-150k-128x8-attention-gpu0; do
   CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 train/choice_model.py evaluate \
     --model "models/${name}.pt" "${old_teacher[@]}" \
     --phase middlegame --seed 20260930 --device cuda \

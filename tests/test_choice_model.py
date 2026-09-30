@@ -42,6 +42,17 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertTrue(torch.equal(old_logits, new_logits))
         self.assertTrue(torch.equal(old_value, new_value))
 
+    def test_attention_policy_scores_only_requested_legal_moves(self):
+        model = choice_model.ChoiceNet(32, 2, policy_features="attention")
+        boards = torch.randn(2, 16, 10, 9)
+        moves = torch.tensor([[[0, 1], [20, 29], [0, 0]], [[89, 80], [44, 36], [10, 19]]])
+        mask = torch.tensor([[True, True, False], [True, True, True]])
+        logits, values = model(boards, moves, mask)
+        self.assertEqual(tuple(logits.shape), (2, 3))
+        self.assertEqual(tuple(values.shape), (2,))
+        self.assertEqual(float(logits[0, 2].detach()), -1e9)
+        self.assertTrue(torch.isfinite(logits[mask]).all())
+
     def test_horizontal_mirror_is_an_involution_for_fen_and_moves(self):
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
         self.assertEqual(choice_model.mirror_fen(choice_model.mirror_fen(fen)), fen)

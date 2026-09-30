@@ -227,8 +227,15 @@ class ChoiceNet(nn.Module):
         self.policy_features = policy_features
         self.stem = nn.Sequential(nn.Conv2d(input_channels, channels, 3, padding=1), nn.BatchNorm2d(channels), nn.ReLU())
         self.blocks = nn.Sequential(*(ResidualBlock(channels) for _ in range(blocks)))
-        policy_inputs = channels * 3 if policy_features == "v1" else channels * 5 + 4
-        self.policy = nn.Sequential(nn.Linear(policy_inputs, channels * 2), nn.ReLU(), nn.Linear(channels * 2, 1))
+        if policy_features == "attention":
+            policy_channels = max(32, channels // 2)
+            self.policy_source = nn.Conv2d(channels, policy_channels, 1)
+            self.policy_target = nn.Conv2d(channels, policy_channels, 1)
+            self.policy_geometry = nn.Linear(4, 1)
+            self.policy_scale = math.sqrt(policy_channels)
+        else:
+            policy_inputs = channels * 3 if policy_features == "v1" else channels * 5 + 4
+            self.policy = nn.Sequential(nn.Linear(policy_inputs, channels * 2), nn.ReLU(), nn.Linear(channels * 2, 1))
         self.value = nn.Sequential(nn.Linear(channels, channels), nn.ReLU(),
                                    nn.Linear(channels, 3 if value_head == "wdl" else 1),
                                    *([] if value_head == "wdl" else [nn.Tanh()]))
@@ -236,21 +243,29 @@ class ChoiceNet(nn.Module):
     def forward(self, boards, moves, mask):
         features = self.blocks(self.stem(boards))
         flat = features.flatten(2).transpose(1, 2)
+        pooled = features.mean(dim=(2, 3))
         batch, count = moves.shape[:2]
         source_index = moves[:, :, 0].clamp(min=0).unsqueeze(-1).expand(batch, count, flat.shape[-1])
         target_index = moves[:, :, 1].clamp(min=0).unsqueeze(-1).expand(batch, count, flat.shape[-1])
-        source = flat.gather(1, source_index)
-        target = flat.gather(1, target_index)
-        pooled = features.mean(dim=(2, 3))
-        pooled_moves = pooled.unsqueeze(1).expand(-1, count, -1)
-        policy_input = torch.cat((source, target, pooled_moves), dim=-1)
-        if self.policy_features == "v2":
-            source_x, source_y = moves[:, :, 0] % 9, moves[:, :, 0] // 9
-            target_x, target_y = moves[:, :, 1] % 9, moves[:, :, 1] // 9
-            geometry = torch.stack((source_x / 8, source_y / 9,
-                                    (target_x - source_x) / 8, (target_y - source_y) / 9), dim=-1)
-            policy_input = torch.cat((policy_input, target - source, target * source, geometry), dim=-1)
-        logits = self.policy(policy_input).squeeze(-1)
+        source_x, source_y = moves[:, :, 0] % 9, moves[:, :, 0] // 9
+        target_x, target_y = moves[:, :, 1] % 9, moves[:, :, 1] // 9
+        geometry = torch.stack((source_x / 8, source_y / 9,
+                                (target_x - source_x) / 8, (target_y - source_y) / 9), dim=-1)
+        if self.policy_features == "attention":
+            policy_source = self.policy_source(features).flatten(2).transpose(1, 2)
+            policy_target = self.policy_target(features).flatten(2).transpose(1, 2)
+            policy_channels = policy_source.shape[-1]
+            source = policy_source.gather(1, moves[:, :, 0].clamp(min=0).unsqueeze(-1).expand(batch, count, policy_channels))
+            target = policy_target.gather(1, moves[:, :, 1].clamp(min=0).unsqueeze(-1).expand(batch, count, policy_channels))
+            logits = (source * target).sum(dim=-1) / self.policy_scale + self.policy_geometry(geometry).squeeze(-1)
+        else:
+            source = flat.gather(1, source_index)
+            target = flat.gather(1, target_index)
+            pooled_moves = pooled.unsqueeze(1).expand(-1, count, -1)
+            policy_input = torch.cat((source, target, pooled_moves), dim=-1)
+            if self.policy_features == "v2":
+                policy_input = torch.cat((policy_input, target - source, target * source, geometry), dim=-1)
+            logits = self.policy(policy_input).squeeze(-1)
         logits = logits.masked_fill(~mask, -1e9)
         value = self.value(pooled)
         if self.value_head == "scalar":
@@ -670,7 +685,7 @@ def main():
     train_parser.add_argument("--min-lr", type=float, default=1e-6)
     train_parser.add_argument("--channels", type=int, default=64)
     train_parser.add_argument("--blocks", type=int, default=4)
-    train_parser.add_argument("--policy-features", choices=["v1", "v2"], default="v1")
+    train_parser.add_argument("--policy-features", choices=["v1", "v2", "attention"], default="v1")
     train_parser.add_argument("--seed", type=int, default=20260923)
     train_parser.add_argument("--device", default="auto")
     rank_parser = sub.add_parser("rank")
