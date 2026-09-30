@@ -1,0 +1,24 @@
+{
+  "kind": "choice-model-training-summary",
+  "teacherPositions": 20000,
+  "testPositions": 2000,
+  "seed": 20260930,
+  "candidate": {
+    "name": "choice-middle-fixednodes-20k-attention-pilot-gpu0",
+    "sha256": "12b1e9b5327d0df6dab0984b95cbed8d2ff72d9edcb859b2140aceea1c6b1144",
+    "top1": 0.2105,
+    "top3": 0.385,
+    "top5": 0.502,
+    "nll": 2.911289864712324
+  },
+  "production": {
+    "sha256": "4542669dabdc0b97ba83811287e6ad43d73b4bbc83d0910ef12755739fbc834d",
+    "top1": 0.2425,
+    "top3": 0.433,
+    "top5": 0.552,
+    "nll": 2.805250174875415
+  },
+  "top1Gain": -0.032,
+  "top1Gain95GameBootstrap": [-0.0505, -0.014],
+  "decision": "Reject the attention endpoint head. Its paired top-1 loss is statistically clear on the game-disjoint fixed-node holdout. Round 7 keeps the established v1 move head."
+}
