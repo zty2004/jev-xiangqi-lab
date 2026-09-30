@@ -498,6 +498,7 @@ def train(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     print(f"device={device} train={len(training)} validation={len(validation)} calibration={len(calibration)} test={len(test)}", flush=True)
     best_loss = float("inf")
+    best_accuracy = -1.0
     stale_epochs = 0
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -512,12 +513,15 @@ def train(args):
             optimizer.step()
         validation_loss, accuracy = evaluate(model, validation_loader, device)
         print(f"epoch={epoch} val_loss={validation_loss:.4f} top1={accuracy:.3f}", flush=True)
-        if validation_loss < best_loss:
+        improved = (accuracy > best_accuracy if args.selection_metric == "top1" else validation_loss < best_loss)
+        if improved:
             best_loss = validation_loss
+            best_accuracy = accuracy
             stale_epochs = 0
             torch.save({"state_dict": model.state_dict(), "channels": args.channels, "blocks": args.blocks,
                         "input_channels": input_channels, "value_head": args.value_head,
                         "value_loss_weight": args.value_loss_weight, "policy_target": args.policy_target,
+                        "selection_metric": args.selection_metric,
                         "mirror_augmentation": args.mirror_augmentation,
                         "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
@@ -607,6 +611,8 @@ def main():
                               help="choose checkpoints using only this --data source from the fixed validation split")
     train_parser.add_argument("--init-model", help="compatible checkpoint used to initialize fine-tuning")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
+    train_parser.add_argument("--selection-metric", choices=["loss", "top1"], default="loss",
+                              help="metric used for checkpoint selection and early stopping")
     train_parser.add_argument("--output", default="choice-model.pt")
     train_parser.add_argument("--epochs", type=int, default=10)
     train_parser.add_argument("--batch", type=int, default=128)
