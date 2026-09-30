@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { gamePhase } from './src/engine.js';
 import { gameResult, legalMoves, makeMove, moveName, parseFen, positionKey, toFen } from './src/xiangqi.js';
 import { PikafishTeacher } from './src/pikafish-teacher.js';
 
@@ -12,13 +13,15 @@ const binary = option('--pikafish', process.env.PIKAFISH_PATH);
 const limit = Number(option('--positions', 1200));
 const moveTime = Number(option('--movetime', 500));
 const seed = Number(option('--seed', 20260923));
+const phaseOnly = option('--phase', null);
 const includeHumanMachine = args.includes('--include-human-machine');
 const planOnly = args.includes('--plan-only');
 const resume = args.includes('--resume');
 const excludeFiles = args.flatMap((item, index) => item === '--exclude-teacher' ? [path.resolve(args[index + 1])] : []);
 if (!Number.isInteger(limit) || limit < 1 || !Number.isInteger(moveTime) || moveTime < 20 ||
+    (phaseOnly && !['opening', 'middlegame', 'endgame'].includes(phaseOnly)) ||
     !Number.isInteger(seed) || (resume && planOnly) || (!planOnly && !binary)) {
-  console.error('Usage: node label-ccpd-games.js --pikafish /path/to/Pikafish --positions 1200 --movetime 500 --exclude-teacher data/teacher.jsonl [--resume] [--plan-only]');
+  console.error('Usage: node label-ccpd-games.js --pikafish /path/to/Pikafish --phase middlegame --positions 1200 --movetime 500 --exclude-teacher data/teacher.jsonl [--resume] [--plan-only]');
   process.exit(2);
 }
 
@@ -35,7 +38,7 @@ function shuffle(items, random) {
     [items[i], items[j]] = [items[j], items[i]];
   }
 }
-function phase(ply) { return ply < 32 ? 0 : ply < 80 ? 1 : 2; }
+const phaseIndex = new Map([['opening', 0], ['middlegame', 1], ['endgame', 2]]);
 
 function selectPositions() {
   const rows = jsonLines(input);
@@ -70,7 +73,7 @@ function selectPositions() {
         const candidate = { game: row.game, ply, fen, legal, played: row.moves[ply],
           sourceCategory: row.sourceCategory, sourceFile: row.sourceFile, sourceSha256: row.sourceSha256,
           historyMoves: row.moves.slice(0, ply) };
-        const group = byPhase[phase(ply)];
+        const group = byPhase[phaseIndex.get(gamePhase(position))];
         if (!group.has(row.game)) group.set(row.game, []);
         group.get(row.game).push(candidate);
         seen.add(key);
@@ -90,8 +93,9 @@ function selectPositions() {
     for (const [, items] of entries) shuffle(items, random);
     return entries;
   });
-  const targets = [Math.floor(limit * 0.25), Math.floor(limit * 0.4)];
-  targets.push(limit - targets[0] - targets[1]);
+  const targets = phaseOnly ? [0, 0, 0] : [Math.floor(limit * 0.25), Math.floor(limit * 0.4), 0];
+  if (phaseOnly) targets[phaseIndex.get(phaseOnly)] = limit;
+  else targets[2] = limit - targets[0] - targets[1];
   const selected = [], counts = [0, 0, 0];
   for (let p = 0; p < 3; p++) {
     let cursor = 0;
@@ -119,7 +123,8 @@ async function main() {
     sourceFile: path.basename(input), sourceSha256: fileSha256(input),
     teacherBinarySha256: fileSha256(binary), positions: selected.length, moveTime, seed,
     includeHumanMachine, excludeSources: excludeFiles.map(filename => ({ file: path.basename(filename), sha256: fileSha256(filename) })),
-    selectionSha256: sha256(JSON.stringify(selected)), sampling: 'game-round-robin phase quotas 25/40/35', ...summary };
+    selectionSha256: sha256(JSON.stringify(selected)),
+    sampling: phaseOnly ? `game-round-robin ${phaseOnly} positions` : 'game-round-robin phase quotas 25/40/35', ...summary };
   let done = 0;
   if (resume) {
     if (!existsSync(output)) throw new Error('Cannot resume missing output');
