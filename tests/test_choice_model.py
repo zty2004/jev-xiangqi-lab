@@ -72,6 +72,17 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertEqual(choice_model.source_sample_weights(rows, {0: 2.0, 1: 3.0}),
                          [0.3, 3.0, 1.0])
 
+    def test_pv_continuations_do_not_invent_draw_value_targets(self):
+        fen = "4k4/9/9/9/9/9/9/9/9/4K4 w - - 0 1"
+        base = {"fen": fen, "legal": ["e0e1"], "best": "e0e1", "candidates": []}
+        pv = choice_model.TeacherDataset([{**base, "source": "pikafish-pv-continuation"}])[0]
+        teacher = choice_model.TeacherDataset([{**base, "source": "pikafish"}])[0]
+        explicit = choice_model.TeacherDataset([{**base, "source": "pikafish",
+                                                  "valueTrainingWeight": 0.25}])[0]
+        self.assertEqual(float(pv[5]), 0.0)
+        self.assertEqual(float(teacher[5]), 1.0)
+        self.assertEqual(float(explicit[5]), 0.25)
+
     def test_horizontal_mirror_is_an_involution_for_fen_and_moves(self):
         fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
         self.assertEqual(choice_model.mirror_fen(choice_model.mirror_fen(fen)), fen)

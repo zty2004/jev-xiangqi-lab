@@ -197,7 +197,8 @@ class TeacherDataset(Dataset):
             weight = float(winner is not None)
             value_tensor = torch.tensor(value, dtype=torch.long)
         else:
-            weight = float(row.get("source") != "opening-book")
+            default_weight = float(row.get("source") not in ("opening-book", "pikafish-pv-continuation"))
+            weight = float(row.get("valueTrainingWeight", default_weight))
             value_tensor = torch.tensor(value, dtype=torch.float32)
         return (encode_position(fen, previous, row.get("repetitionCount", 1), self.input_channels),
                 encode_moves(legal, turn), policy, value_tensor,
@@ -473,6 +474,28 @@ def wdl_metrics(model, rows, device, batch_size):
     return {"count": int(count), "accuracy": hits / count, "nll": nll / count, "brier": brier / count} if count else {"count": 0}
 
 
+def scalar_value_metrics(model, rows, device, batch_size):
+    if model.value_head != "scalar" or model.value_loss_weight == 0:
+        return None
+    loader = DataLoader(TeacherDataset(rows, model.input_channels, "scalar"),
+                        batch_size=batch_size, collate_fn=collate)
+    count = weight_sum = absolute_error = squared_error = 0.0
+    model.eval()
+    with torch.no_grad():
+        for boards, moves, _, mask, values, _, weights in loader:
+            _, predictions = model(boards.to(device), moves.to(device), mask.to(device))
+            errors = predictions.cpu() - values
+            selected = weights > 0
+            count += selected.sum().item()
+            weight_sum += weights.sum().item()
+            absolute_error += (errors.abs() * weights).sum().item()
+            squared_error += (errors.square() * weights).sum().item()
+    if not weight_sum:
+        return {"count": 0, "effectiveWeight": 0.0}
+    return {"count": int(count), "effectiveWeight": weight_sum,
+            "mae": absolute_error / weight_sum, "mse": squared_error / weight_sum}
+
+
 def policy_metrics(predictions, temperature):
     if not predictions:
         raise ValueError("no positions to evaluate")
@@ -644,6 +667,9 @@ def train(args):
     test_predictions = collect_predictions(model, test, device, args.batch)
     report = {"temperature": temperature, "calibration": policy_metrics(calibration_predictions, temperature),
               "test_uncalibrated": policy_metrics(test_predictions, 1.0), "test_calibrated": policy_metrics(test_predictions, temperature)}
+    if args.value_head == "scalar" and args.value_loss_weight > 0:
+        report["validation_value"] = scalar_value_metrics(model, validation, device, args.batch)
+        report["test_value"] = scalar_value_metrics(model, test, device, args.batch)
     if args.value_head == "wdl" and args.value_loss_weight > 0:
         report["validation_wdl"] = wdl_metrics(model, validation, device, args.batch)
         report["test_wdl"] = wdl_metrics(model, test, device, args.batch)
@@ -798,6 +824,7 @@ def main():
             predictions = collect_predictions(model, test, device, args.batch)
             print(json.dumps({"temperature": temperature, "phase": args.phase,
                               "test": policy_metrics(predictions, temperature),
+                              "test_value": scalar_value_metrics(model, test, device, args.batch),
                               "test_wdl": wdl_metrics(model, test, device, args.batch)}))
         elif args.command == "rank":
             print(json.dumps(rank(model, args.fen, args.moves.split(","), device, temperature), ensure_ascii=False))

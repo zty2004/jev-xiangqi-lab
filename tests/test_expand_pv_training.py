@@ -32,6 +32,7 @@ class ExpandPvTrainingTests(unittest.TestCase):
         self.assertEqual(rows[0]["best"], "h9g7")
         self.assertEqual(rows[0]["source"], PV_SOURCE)
         self.assertEqual(rows[0]["trainingWeight"], 0.15)
+        self.assertEqual(rows[0]["valueTrainingWeight"], 0.0)
 
 
 if __name__ == "__main__":

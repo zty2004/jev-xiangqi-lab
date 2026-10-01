@@ -39,6 +39,7 @@ def continuation_rows(row: dict, helper, max_plies: int, weight: float) -> list[
             "kind": "position", "game": row["game"], "ply": f"{row.get('ply', 0)}:pv:{index}",
             "fen": fen, "legal": legal, "best": best, "played": best,
             "candidates": [], "source": PV_SOURCE, "trainingWeight": weight,
+            "valueTrainingWeight": 0.0,
             "pvRootSourceIndex": row.get("sourceIndex"), "pvPrefix": prefix,
         })
     return derived
