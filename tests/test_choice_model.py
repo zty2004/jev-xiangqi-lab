@@ -42,6 +42,15 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertTrue(torch.equal(old_logits, new_logits))
         self.assertTrue(torch.equal(old_value, new_value))
 
+    def test_value_only_training_freezes_policy_and_shared_trunk(self):
+        model = choice_model.ChoiceNet(16, 1)
+        selected = choice_model.trainable_parameters(model, value_only=True)
+        self.assertEqual({id(parameter) for parameter in selected},
+                         {id(parameter) for parameter in model.value.parameters()})
+        self.assertTrue(all(parameter.requires_grad for parameter in model.value.parameters()))
+        self.assertTrue(all(not parameter.requires_grad for name, parameter in model.named_parameters()
+                            if not name.startswith("value.")))
+
     def test_attention_policy_scores_only_requested_legal_moves(self):
         model = choice_model.ChoiceNet(32, 2, policy_features="attention")
         boards = torch.randn(2, 16, 10, 9)

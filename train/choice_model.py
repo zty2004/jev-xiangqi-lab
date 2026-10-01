@@ -422,6 +422,16 @@ def value_loss_for(model, predicted, targets, weights):
     return (errors * weights).sum() / weights.sum().clamp(min=1)
 
 
+def trainable_parameters(model, value_only=False):
+    """Select optimization parameters while keeping a distilled policy bit-stable."""
+    if value_only:
+        for parameter in model.parameters():
+            parameter.requires_grad_(False)
+        for parameter in model.value.parameters():
+            parameter.requires_grad_(True)
+    return [parameter for parameter in model.parameters() if parameter.requires_grad]
+
+
 def evaluate(model, loader, device):
     model.eval()
     total, top1_hits, top8_hits, loss_sum = 0, 0, 0, 0.0
@@ -591,6 +601,7 @@ def train(args):
                                    batch_size=args.batch, collate_fn=collate, **loader_options)
     model = ChoiceNet(args.channels, args.blocks, input_channels, args.value_head, args.value_loss_weight,
                       args.policy_features).to(device)
+    initial = None
     if args.init_model:
         initial = torch.load(args.init_model, map_location=device, weights_only=True)
         expected = {"channels": args.channels, "blocks": args.blocks, "input_channels": input_channels,
@@ -599,7 +610,10 @@ def train(args):
         if actual != expected:
             raise ValueError(f"initial model architecture mismatch: expected {expected}, got {actual}")
         initialize_from_checkpoint(model, initial)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    if args.train_value_only and initial is None:
+        raise ValueError("value-only training requires --init-model")
+    parameters = trainable_parameters(model, args.train_value_only)
+    optimizer = torch.optim.AdamW(parameters, lr=args.lr, weight_decay=1e-4)
     scheduler = (torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="max" if args.selection_metric in ("top1", "top8") else "min",
         factor=0.5, patience=args.lr_patience, min_lr=args.min_lr)
@@ -610,7 +624,13 @@ def train(args):
     best_top8 = -1.0
     stale_epochs = 0
     for epoch in range(1, args.epochs + 1):
-        model.train()
+        if args.train_value_only:
+            # Frozen BatchNorm running statistics are part of the policy and
+            # must not drift while fitting only the value head.
+            model.eval()
+            model.value.train()
+        else:
+            model.train()
         for boards, moves, targets, mask, values, _, value_weights in train_loader:
             boards, moves, targets, mask, values, value_weights = (item.to(device) for item in (boards, moves, targets, mask, values, value_weights))
             logits, predicted_value = model(boards, moves, mask)
@@ -635,6 +655,7 @@ def train(args):
                         "input_channels": input_channels, "value_head": args.value_head,
                         "policy_features": args.policy_features,
                         "value_loss_weight": args.value_loss_weight, "policy_target": args.policy_target,
+                        "train_value_only": args.train_value_only,
                         "selection_metric": args.selection_metric,
                         "lr_scheduler": ({"kind": "plateau", "patience": args.lr_patience,
                                           "factor": 0.5, "min_lr": args.min_lr}
@@ -663,7 +684,8 @@ def train(args):
             scheduler.step({"loss": validation_loss, "top1": accuracy, "top8": top8}[args.selection_metric])
     model, _ = load_model(args.output, device)
     calibration_predictions = collect_predictions(model, calibration, device, args.batch)
-    temperature = fit_temperature(calibration_predictions)
+    temperature = (float(initial.get("temperature", 1.0)) if args.train_value_only
+                   else fit_temperature(calibration_predictions))
     test_predictions = collect_predictions(model, test, device, args.batch)
     report = {"temperature": temperature, "calibration": policy_metrics(calibration_predictions, temperature),
               "test_uncalibrated": policy_metrics(test_predictions, 1.0), "test_calibrated": policy_metrics(test_predictions, temperature)}
@@ -757,6 +779,8 @@ def main():
     train_parser.add_argument("--validation-source-index", type=int,
                               help="choose checkpoints using only this --data source from the fixed validation split")
     train_parser.add_argument("--init-model", help="compatible checkpoint used to initialize fine-tuning")
+    train_parser.add_argument("--train-value-only", action="store_true",
+                              help="freeze the policy and shared trunk; update only the value head")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
     train_parser.add_argument("--selection-metric", choices=["loss", "top1", "top8"], default="loss",
                               help="metric used for checkpoint selection and early stopping")
