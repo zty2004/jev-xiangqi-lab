@@ -203,6 +203,7 @@ class ChoiceModelTests(unittest.TestCase):
         self.assertAlmostEqual(metrics["top1"], 0.5)
         self.assertAlmostEqual(metrics["top3"], 1.0)
         self.assertAlmostEqual(metrics["top5"], 1.0)
+        self.assertAlmostEqual(metrics["top8"], 1.0)
         self.assertAlmostEqual(metrics["mean_reciprocal_rank"], 0.75)
 
     def test_temperature_reduces_overconfidence(self):

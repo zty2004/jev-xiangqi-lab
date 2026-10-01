@@ -27,7 +27,7 @@ CUDA_VISIBLE_DEVICES="$gpu_uuid" python3 -u train/choice_model.py train \
   --source-weight 2:2 --source-weight 3:2 --source-weight 4:2 \
   --training-only-row-source pikafish-pv-continuation \
   --validation-source-index 0 --policy-target dominant --value-loss-weight 0.1 \
-  --mirror-augmentation --selection-metric top1 --policy-features v1 \
+  --mirror-augmentation --selection-metric top8 --policy-features v1 \
   --channels 128 --blocks 8 --init-model "$init" \
   --epochs 15 --patience 5 --lr-patience 2 --min-lr 0.000001 \
   --batch 256 --loader-workers 8 --lr 0.000005 \

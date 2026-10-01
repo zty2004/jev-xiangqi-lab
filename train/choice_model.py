@@ -423,7 +423,7 @@ def value_loss_for(model, predicted, targets, weights):
 
 def evaluate(model, loader, device):
     model.eval()
-    total, hits, loss_sum = 0, 0, 0.0
+    total, top1_hits, top8_hits, loss_sum = 0, 0, 0, 0.0
     with torch.no_grad():
         for boards, moves, targets, mask, values, best, value_weights in loader:
             boards, moves, targets, mask, values, best, value_weights = (item.to(device) for item in (boards, moves, targets, mask, values, best, value_weights))
@@ -432,9 +432,11 @@ def evaluate(model, loader, device):
             value_loss = value_loss_for(model, predicted_value, values, value_weights)
             loss = policy_loss + model.value_loss_weight * value_loss
             loss_sum += loss.item() * boards.shape[0]
-            hits += (logits.argmax(dim=1) == best).sum().item()
+            ranking = torch.argsort(logits, dim=1, descending=True)
+            top1_hits += (ranking[:, 0] == best).sum().item()
+            top8_hits += (ranking[:, :min(8, ranking.shape[1])] == best.unsqueeze(1)).any(dim=1).sum().item()
             total += boards.shape[0]
-    return loss_sum / total, hits / total
+    return loss_sum / total, top1_hits / total, top8_hits / total
 
 
 def collect_predictions(model, rows, device, batch_size):
@@ -474,7 +476,7 @@ def wdl_metrics(model, rows, device, batch_size):
 def policy_metrics(predictions, temperature):
     if not predictions:
         raise ValueError("no positions to evaluate")
-    nll = brier = hits = top3_hits = top5_hits = reciprocal_rank = confidence_sum = 0.0
+    nll = brier = hits = top3_hits = top5_hits = top8_hits = reciprocal_rank = confidence_sum = 0.0
     bins = [[0, 0.0, 0.0] for _ in range(10)]
     for logits, best in predictions:
         probabilities = torch.softmax(logits / temperature, dim=0)
@@ -488,6 +490,7 @@ def policy_metrics(predictions, temperature):
         hits += hit
         top3_hits += float(rank <= 3)
         top5_hits += float(rank <= 5)
+        top8_hits += float(rank <= 8)
         reciprocal_rank += 1 / rank
         confidence_sum += confidence
         bucket = bins[min(9, int(confidence * 10))]
@@ -497,7 +500,8 @@ def policy_metrics(predictions, temperature):
     count = len(predictions)
     ece = sum(abs(accuracy - confidence) for size, confidence, accuracy in bins if size) / count
     return {"count": count, "top1": hits / count, "top3": top3_hits / count,
-            "top5": top5_hits / count, "mean_reciprocal_rank": reciprocal_rank / count, "nll": nll / count,
+            "top5": top5_hits / count, "top8": top8_hits / count,
+            "mean_reciprocal_rank": reciprocal_rank / count, "nll": nll / count,
             "brier": brier / count, "mean_top_probability": confidence_sum / count, "ece10": ece}
 
 
@@ -574,12 +578,13 @@ def train(args):
         initialize_from_checkpoint(model, initial)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     scheduler = (torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="max" if args.selection_metric == "top1" else "min",
+        optimizer, mode="max" if args.selection_metric in ("top1", "top8") else "min",
         factor=0.5, patience=args.lr_patience, min_lr=args.min_lr)
         if args.lr_patience else None)
     print(f"device={device} train={len(training)} validation={len(validation)} calibration={len(calibration)} test={len(test)}", flush=True)
     best_loss = float("inf")
     best_accuracy = -1.0
+    best_top8 = -1.0
     stale_epochs = 0
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -592,13 +597,16 @@ def train(args):
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
-        validation_loss, accuracy = evaluate(model, validation_loader, device)
+        validation_loss, accuracy, top8 = evaluate(model, validation_loader, device)
         current_lr = optimizer.param_groups[0]["lr"]
-        print(f"epoch={epoch} val_loss={validation_loss:.4f} top1={accuracy:.3f} lr={current_lr:.2g}", flush=True)
-        improved = (accuracy > best_accuracy if args.selection_metric == "top1" else validation_loss < best_loss)
+        print(f"epoch={epoch} val_loss={validation_loss:.4f} top1={accuracy:.3f} top8={top8:.3f} lr={current_lr:.2g}", flush=True)
+        selection_value = {"loss": -validation_loss, "top1": accuracy, "top8": top8}[args.selection_metric]
+        best_selection_value = {"loss": -best_loss, "top1": best_accuracy, "top8": best_top8}[args.selection_metric]
+        improved = selection_value > best_selection_value
         if improved:
             best_loss = validation_loss
             best_accuracy = accuracy
+            best_top8 = top8
             stale_epochs = 0
             torch.save({"state_dict": model.state_dict(), "channels": args.channels, "blocks": args.blocks,
                         "input_channels": input_channels, "value_head": args.value_head,
@@ -609,7 +617,8 @@ def train(args):
                                           "factor": 0.5, "min_lr": args.min_lr}
                                          if scheduler else None),
                         "mirror_augmentation": args.mirror_augmentation,
-                        "epoch": epoch, "validation_loss": validation_loss, "validation_top1": accuracy,
+                        "epoch": epoch, "validation_loss": validation_loss,
+                        "validation_top1": accuracy, "validation_top8": top8,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
                         "source_weights": source_weights,
                         "training_only_row_sources": sorted(training_only_sources),
@@ -628,7 +637,7 @@ def train(args):
                 print(f"early_stop={epoch} patience={args.patience}", flush=True)
                 break
         if scheduler:
-            scheduler.step(accuracy if args.selection_metric == "top1" else validation_loss)
+            scheduler.step({"loss": validation_loss, "top1": accuracy, "top8": top8}[args.selection_metric])
     model, _ = load_model(args.output, device)
     calibration_predictions = collect_predictions(model, calibration, device, args.batch)
     temperature = fit_temperature(calibration_predictions)
@@ -723,7 +732,7 @@ def main():
                               help="choose checkpoints using only this --data source from the fixed validation split")
     train_parser.add_argument("--init-model", help="compatible checkpoint used to initialize fine-tuning")
     train_parser.add_argument("--patience", type=int, default=0, help="stop after this many epochs without validation improvement; 0 disables")
-    train_parser.add_argument("--selection-metric", choices=["loss", "top1"], default="loss",
+    train_parser.add_argument("--selection-metric", choices=["loss", "top1", "top8"], default="loss",
                               help="metric used for checkpoint selection and early stopping")
     train_parser.add_argument("--output", default="choice-model.pt")
     train_parser.add_argument("--epochs", type=int, default=10)
