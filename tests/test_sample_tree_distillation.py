@@ -24,6 +24,7 @@ class SampleTreeDistillationTests(unittest.TestCase):
         self.assertEqual(rows[0]["treePrefix"], ["b2e2"])
         self.assertEqual(rows[1]["treePrefix"], ["b2e2", "b7e7"])
         self.assertTrue(all(row["best"] in row["legal"] for row in rows))
+        self.assertTrue(all(row["splitGroup"] == "0:fixture" for row in rows))
 
     def test_deduplicates_shared_positions(self):
         duplicate = {**self.row, "candidates": [self.row["candidates"][1]]}

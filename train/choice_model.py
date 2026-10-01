@@ -328,7 +328,11 @@ def load_teacher_sources(filenames, history_filename=None):
         if history_filename and source_index == len(filenames) - 1:
             source_rows = attach_history_labels(source_rows, history_filename, filename)
         for row in source_rows:
-            rows.append({**row, "game": f"{source_index}:{row['game']}"})
+            default_group = f"{source_index}:{row['game']}"
+            split_group = str(row.get("splitGroup", default_group))
+            if not split_group:
+                raise ValueError("teacher splitGroup must be nonempty")
+            rows.append({**row, "game": split_group, "_sourceIndex": source_index})
     return rows
 
 
@@ -400,6 +404,8 @@ def source_sample_weights(rows, source_weights):
 
 
 def source_index(row):
+    if "_sourceIndex" in row:
+        return int(row["_sourceIndex"])
     game = str(row["game"])
     return int(game.split(":", 1)[0]) if ":" in game else 0
 

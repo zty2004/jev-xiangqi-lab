@@ -50,7 +50,7 @@ def ordered_candidates(row: dict, maximum: int) -> list[dict]:
 
 
 def sample_tree_rows(source: list[dict], roots: int, candidates: int, plies: int,
-                     seed: int) -> list[dict]:
+                     seed: int, parent_source_index: int = 0) -> list[dict]:
     if roots < 1 or candidates < 1 or plies < 1:
         raise ValueError("tree sampling limits must be positive")
     selected = list(enumerate(source))
@@ -84,6 +84,10 @@ def sample_tree_rows(source: list[dict], roots: int, candidates: int, plies: int
                     "played": moves[0],
                     "candidates": [],
                     "source": TREE_SEED_SOURCE,
+                    # Keep the derived line in the same train/held-out split
+                    # as its root when this file is combined after the parent
+                    # teacher source.
+                    "splitGroup": f"{parent_source_index}:{row.get('game', f'source-{source_index}')}",
                     "treeRootSourceIndex": row.get("sourceIndex", source_index),
                     "treeCandidateRank": candidate.get("rank"),
                     "treeCandidateMove": candidate.get("move"),
@@ -103,15 +107,20 @@ def main() -> None:
     parser.add_argument("--plies", type=int, default=4)
     parser.add_argument("--phase", choices=("opening", "middlegame", "endgame"))
     parser.add_argument("--seed", type=int, default=20261005)
+    parser.add_argument("--parent-source-index", type=int, default=0,
+                        help="index of the root teacher in the eventual combined --data list")
     args = parser.parse_args()
     output = Path(args.output)
     if output.exists():
         raise ValueError(f"output exists: {output}")
     source = load_positions(args.input, args.phase)
-    rows = sample_tree_rows(source, args.roots, args.candidates, args.plies, args.seed)
+    if args.parent_source_index < 0:
+        raise ValueError("parent source index must be nonnegative")
+    rows = sample_tree_rows(source, args.roots, args.candidates, args.plies, args.seed,
+                            args.parent_source_index)
     metadata = {
         "kind": "meta",
-        "schema": "jev-pikafish-tree-seed-v1",
+        "schema": "jev-pikafish-tree-seed-v2",
         "source": str(Path(args.input)),
         "sourceSha256": sha256_file(args.input),
         "sourcePositions": len(source),
@@ -120,6 +129,7 @@ def main() -> None:
         "maximumPliesPerCandidate": args.plies,
         "phase": args.phase,
         "seed": args.seed,
+        "parentSourceIndex": args.parent_source_index,
         "derivedPositions": len(rows),
         "requiresPikafishRelabel": True,
     }
