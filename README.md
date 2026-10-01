@@ -25,7 +25,7 @@ CHOICE_MODEL=/absolute/path/to/model.pt npm start
 
 `node uci.js` 启动 UCI 棋引擎，支持 `uci`、`isready`、`ucinewgame`、`position startpos/fen ... moves ...`、`go movetime N`、`go depth N`、`go perft N` 和 `quit`。
 
-当前正式走法模型为 128 通道、8 个残差块的 PV 延续候选。它在 14,953 个严格中局留出局面上将相对旧正式模型的 Top-1 教师一致率从 24.10% 提高到 34.78%，在旧独立集上从 34.24% 提高到 39.86%；两项按棋局重采样的 95% 区间均排除零。本机单局面推理中位时间约 4 ms，不会明显侵占秒级搜索预算。训练配置、数据哈希、完整指标和限制见[晋级报告](reports/choice-middle-round9-pv-128x8-gpu0-promotion.json)。这些是教师模仿指标，不代表已经达到 Pikafish 的实战棋力。
+当前正式走法模型为 128 通道、8 个残差块的八层 PV 延续候选。相对上一版，它在 14,996 个严格中局留出局面上把 Top-1 从 54.04% 提高到 54.85%、Top-8 从 91.68% 提高到 92.11%；在旧独立集上把 Top-1 从 39.86% 提高到 40.93%、Top-8 从 85.13% 提高到 86.04%。两项 Top-8 提升的棋局级 95% 区间均排除零。本机单局面推理中位时间约 3.2 ms，与上一版相同。训练配置、数据哈希、完整指标和限制见[晋级报告](reports/choice-middle-round10-pv8-128x8-gpu0-promotion.json)。这些是教师模仿指标，不代表已经达到 Pikafish 的实战棋力。
 
 网页服务提供 `GET /api/new`、`POST /api/state`、`POST /api/move`、`POST /api/ai`。`/api/move` 可提交中文棋谱走法，例如 `炮二平五`；返回值、网页走棋记录和引擎推荐均提供中文棋谱。鼠标落子、UCI 和训练文件内部仍采用 ICCS 坐标，以兼容 FEN 与引擎协议。
 

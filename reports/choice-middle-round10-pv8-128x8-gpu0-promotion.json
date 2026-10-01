@@ -1,0 +1,71 @@
+{
+  "schema": "jev-choice-model-promotion-v1",
+  "date": "2026-10-01",
+  "decision": "promote",
+  "candidate": {
+    "path": "models/choice-middle-round10-pv8-128x8-gpu0.pt",
+    "sha256": "7ba265827ad8a3519f0439407d18d8ef445f823d4c8a0ccb5bd8b50df22e39c0",
+    "channels": 128,
+    "blocks": 8,
+    "policyFeatures": "v1",
+    "selectionMetric": "top8",
+    "selectedEpoch": 1,
+    "temperature": 0.7879904225539432
+  },
+  "priorProduction": {
+    "path": "models/choice-middle-round9-pv-128x8-gpu0.pt",
+    "sha256": "fb3ffa0f45de79302e2ad49a0f2770a8a500b1e8466cd9955495e0678fef9fe3"
+  },
+  "training": {
+    "device": "dash-dev-191-root GPU-44af9bac-81e9-4c9b-05f6-3d8207561c24",
+    "splitSizes": {
+      "train": 231100,
+      "validation": 14370,
+      "calibration": 19408,
+      "test": 19092
+    },
+    "effectiveTrainingExamples": 462200,
+    "initialModelSha256": "fb3ffa0f45de79302e2ad49a0f2770a8a500b1e8466cd9955495e0678fef9fe3",
+    "pvExpandedDataSha256": "04ce71aa1e89bdc858ef5f88113dcc5bb7011a8ffc0781b44e974e76286f037b",
+    "pvRoots": 20000,
+    "pvContinuations": 145444,
+    "maximumContinuationPlies": 8,
+    "continuationWeight": 0.1,
+    "continuationsExcludedFromHeldOutMetrics": true
+  },
+  "gates": {
+    "strictMiddle150k": {
+      "positions": 14996,
+      "games": 2641,
+      "priorTop1": 0.5404107762069885,
+      "candidateTop1": 0.548479594558549,
+      "top1Gain95GameBootstrap": [0.004722942859043438, 0.011465137981602452],
+      "priorTop8": 0.9168444918644972,
+      "candidateTop8": 0.92111229661243,
+      "top8Gain95GameBootstrap": [0.0021273766786331604, 0.006408116948134304],
+      "priorNll": 1.6178956911133104,
+      "candidateNll": 1.5645597313117237,
+      "nllReduction95GameBootstrap": [0.05016962490616379, 0.056645281415737804]
+    },
+    "priorIndependent": {
+      "positions": 1869,
+      "games": 43,
+      "priorTop1": 0.3986088817549492,
+      "candidateTop1": 0.40930979133226325,
+      "top1Gain95GameBootstrap": [0.0, 0.020763187429854096],
+      "priorTop8": 0.8512573568753344,
+      "candidateTop8": 0.8603531300160514,
+      "top8Gain95GameBootstrap": [0.0016242555495397943, 0.01680672268907563],
+      "priorNll": 2.0946119232708367,
+      "candidateNll": 2.063553304887766,
+      "nllReduction95GameBootstrap": [0.006974477604353465, 0.053434112906030486]
+    }
+  },
+  "latencyReport": "reports/choice-middle-round10-pv8-128x8-gpu0-inference-local.json",
+  "evidence": [
+    "reports/compare-choice-middle-round10-pv8-128x8-gpu0-vs-round9-middle150.json",
+    "reports/compare-choice-middle-round10-pv8-128x8-gpu0-vs-round9-prior-independent.json",
+    "reports/choice-middle-round10-pv8-128x8-gpu0-pv20k-root-test.json"
+  ],
+  "limitations": "The policy more reliably retains the teacher move in the eight proposals used by speculative verification. It remains a root policy in the current standalone search, so the result does not establish a playing-strength gain or parity with Pikafish."
+}

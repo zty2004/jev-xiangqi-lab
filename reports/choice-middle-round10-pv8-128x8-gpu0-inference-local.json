@@ -1,0 +1,25 @@
+{
+  "kind": "jev-choice-inference-benchmark-v1",
+  "models": [
+    {
+      "model": "models/choice-middle-round9-pv-128x8-gpu0.pt",
+      "sha256": "fb3ffa0f45de79302e2ad49a0f2770a8a500b1e8466cd9955495e0678fef9fe3",
+      "positions": 500,
+      "device": "cpu",
+      "meanMs": 3.5880939920000023,
+      "medianMs": 3.1669795,
+      "p95Ms": 5.759208999999821,
+      "maxMs": 7.490833000000308
+    },
+    {
+      "model": "models/choice-middle-round10-pv8-128x8-gpu0.pt",
+      "sha256": "7ba265827ad8a3519f0439407d18d8ef445f823d4c8a0ccb5bd8b50df22e39c0",
+      "positions": 500,
+      "device": "cpu",
+      "meanMs": 3.554602401999987,
+      "medianMs": 3.1785625000002593,
+      "p95Ms": 5.591833999999629,
+      "maxMs": 9.932875000000507
+    }
+  ]
+}

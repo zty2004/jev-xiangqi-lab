@@ -1,0 +1,54 @@
+{
+  "positions": 14996,
+  "games": 2641,
+  "phase": "middlegame",
+  "bootstrapSamples": 2000,
+  "testSourceIndex": null,
+  "modelA": {
+    "path": "models/choice-middle-round9-pv-128x8-gpu0.pt",
+    "sha256": "fb3ffa0f45de79302e2ad49a0f2770a8a500b1e8466cd9955495e0678fef9fe3",
+    "metrics": {
+      "count": 14996,
+      "top1": 0.5404107762069885,
+      "top3": 0.7678047479327821,
+      "top5": 0.8513603627634035,
+      "top8": 0.9168444918644972,
+      "mean_reciprocal_rank": 0.6766612035633724,
+      "nll": 1.6178956911133104,
+      "brier": 0.616182439675106,
+      "mean_top_probability": 0.4484894442871098,
+      "ece10": 0.09200881111837285
+    }
+  },
+  "modelB": {
+    "path": "models/choice-middle-round10-pv8-128x8-gpu0.pt",
+    "sha256": "7ba265827ad8a3519f0439407d18d8ef445f823d4c8a0ccb5bd8b50df22e39c0",
+    "metrics": {
+      "count": 14996,
+      "top1": 0.548479594558549,
+      "top3": 0.7776073619631901,
+      "top5": 0.8597626033608963,
+      "top8": 0.92111229661243,
+      "mean_reciprocal_rank": 0.6845380074592087,
+      "nll": 1.5645597313117237,
+      "brier": 0.5990092961088311,
+      "mean_top_probability": 0.48804250033808316,
+      "ece10": 0.06048640549166993
+    }
+  },
+  "top1GainBminusA": 0.00806881835156048,
+  "top1Gain95GameBootstrap": [
+    0.004722942859043438,
+    0.011465137981602452
+  ],
+  "top8GainBminusA": 0.0042678047479327574,
+  "top8Gain95GameBootstrap": [
+    0.0021273766786331604,
+    0.006408116948134304
+  ],
+  "nllReductionAminusB": 0.053335959801586785,
+  "nllReduction95GameBootstrap": [
+    0.05016962490616379,
+    0.056645281415737804
+  ]
+}

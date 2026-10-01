@@ -1,6 +1,6 @@
 {
-  "model": "choice-middle-round9-pv-128x8-gpu0.pt",
-  "sha256": "fb3ffa0f45de79302e2ad49a0f2770a8a500b1e8466cd9955495e0678fef9fe3",
+  "model": "choice-middle-round10-pv8-128x8-gpu0.pt",
+  "sha256": "7ba265827ad8a3519f0439407d18d8ef445f823d4c8a0ccb5bd8b50df22e39c0",
   "promotedAt": "2026-10-01",
-  "reason": "PV-continuation training improved game-disjoint middlegame top-1 accuracy over the prior production model by 10.68 points on the 150k teacher holdout and 5.62 points on the prior independent holdout; both game-bootstrap intervals exclude zero, with negligible search-budget latency."
+  "reason": "Eight-ply PV continuation training improved Top-1, Top-8 and NLL over Round 9 on both the strict middlegame and prior independent holdouts; both Top-8 game-bootstrap intervals exclude zero with unchanged architecture and latency."
 }
