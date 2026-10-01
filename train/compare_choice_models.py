@@ -60,15 +60,19 @@ def main():
         old_probability = torch.softmax(old_logits / temperatures["a"], dim=0)
         new_probability = torch.softmax(new_logits / temperatures["b"], dim=0)
         top1_gain = int(new_probability.argmax() == best) - int(old_probability.argmax() == best)
+        old_ranking = torch.argsort(old_probability, descending=True)
+        new_ranking = torch.argsort(new_probability, descending=True)
+        top8_gain = int(best in new_ranking[:8]) - int(best in old_ranking[:8])
         nll_reduction = math.log(max(float(new_probability[best]), 1e-30)) - math.log(max(float(old_probability[best]), 1e-30))
-        by_game[row["game"]].append((top1_gain, nll_reduction))
+        by_game[row["game"]].append((top1_gain, top8_gain, nll_reduction))
     games = list(by_game)
     rng = random.Random(args.seed)
     samples = []
     for _ in range(args.bootstrap):
         selected = [item for game in (rng.choice(games) for _ in games) for item in by_game[game]]
         samples.append((sum(item[0] for item in selected) / len(selected),
-                        sum(item[1] for item in selected) / len(selected)))
+                        sum(item[1] for item in selected) / len(selected),
+                        sum(item[2] for item in selected) / len(selected)))
     print(json.dumps({
         "positions": len(test), "games": len(games), "phase": args.phase, "bootstrapSamples": args.bootstrap,
         "testSourceIndex": args.test_source_index,
@@ -76,8 +80,10 @@ def main():
         "modelB": {"path": args.model_b, "sha256": choice.sha256_file(args.model_b), "metrics": metrics["b"]},
         "top1GainBminusA": metrics["b"]["top1"] - metrics["a"]["top1"],
         "top1Gain95GameBootstrap": interval([sample[0] for sample in samples]),
+        "top8GainBminusA": metrics["b"]["top8"] - metrics["a"]["top8"],
+        "top8Gain95GameBootstrap": interval([sample[1] for sample in samples]),
         "nllReductionAminusB": metrics["a"]["nll"] - metrics["b"]["nll"],
-        "nllReduction95GameBootstrap": interval([sample[1] for sample in samples]),
+        "nllReduction95GameBootstrap": interval([sample[2] for sample in samples]),
     }, indent=2))
 
 
