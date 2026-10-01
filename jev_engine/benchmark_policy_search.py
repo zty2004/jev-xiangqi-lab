@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import statistics
 import sys
 
@@ -25,13 +26,16 @@ def main() -> None:
     parser.add_argument("--phase", choices=("opening", "middlegame", "endgame"),
                         default="middlegame")
     parser.add_argument("--seed", type=int, default=20261002)
+    parser.add_argument("--sample-seed", type=int, default=20261004)
     parser.add_argument("--device", default="auto")
     args = parser.parse_args()
     if args.positions < 1:
         parser.error("--positions must be positive")
 
     _, _, _, test = split_rows(load_teacher_sources(args.data), args.seed)
-    rows = [row for row in test if game_phase(row["fen"]) == args.phase][:args.positions]
+    rows = [row for row in test if game_phase(row["fen"]) == args.phase]
+    random.Random(args.sample_seed).shuffle(rows)
+    rows = rows[:args.positions]
     if not rows:
         raise ValueError("no held-out positions match the requested phase")
     evaluator = TorchChoiceEvaluator(args.model, args.device)
@@ -72,6 +76,7 @@ def main() -> None:
         "data": [{"path": filename, "sha256": sha256_file(filename)}
                  for filename in args.data],
         "seed": args.seed,
+        "sampleSeed": args.sample_seed,
         "phase": args.phase,
         "positions": count,
         "simulations": args.simulations,
