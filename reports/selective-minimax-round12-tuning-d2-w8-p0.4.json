@@ -1,0 +1,32 @@
+{
+  "schema": "jev-selective-minimax-benchmark-v1",
+  "model": "models/choice-middle-round12-tree-value-128x8-gpu0.pt",
+  "modelSha256": "9f0d3f32f81f2e9a33cca8ec7ddaba39582083ffafdd1566891b0b45f5f40b21",
+  "data": [
+    {
+      "path": "data/teacher-ccpd-all-middle-150k-nodes250k.jsonl",
+      "sha256": "5eb33d7979b6be7f1fcb8454643ae085cfc4c5e723448b3ede6f99eeed477a6b"
+    }
+  ],
+  "seed": 20261002,
+  "sampleSeed": 20261007,
+  "sampleOffset": 0,
+  "phase": "middlegame",
+  "positions": 200,
+  "depth": 2,
+  "internalWidth": 8,
+  "rootPriorWeight": 0.4,
+  "batchSize": 512,
+  "directTop1": 0.595,
+  "searchTop1": 0.615,
+  "top1Gain": 0.02,
+  "directTop8": 0.935,
+  "searchTop8": 0.95,
+  "top8Gain": 0.015,
+  "corrections": 7,
+  "spoils": 3,
+  "meanElapsedMs": 82.85351062892005,
+  "medianElapsedMs": 79.72275512292981,
+  "meanMaximumDepth": 2.0,
+  "meanModelEvaluations": 304.755
+}

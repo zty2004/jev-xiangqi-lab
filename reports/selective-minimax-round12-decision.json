@@ -1,0 +1,64 @@
+{
+  "schema": "jev-search-candidate-decision-v1",
+  "date": "2026-10-01",
+  "decision": "reject-for-production",
+  "search": "Jev-guided selective minimax",
+  "model": {
+    "path": "models/choice-middle-round12-tree-value-128x8-gpu0.pt",
+    "sha256": "9f0d3f32f81f2e9a33cca8ec7ddaba39582083ffafdd1566891b0b45f5f40b21"
+  },
+  "tuningSample": {
+    "positions": 200,
+    "offset": 0,
+    "directTop1": 0.595,
+    "bestConfiguration": {
+      "depth": 2,
+      "internalWidth": 8,
+      "rootPriorWeight": 0.2,
+      "searchTop1": 0.625,
+      "top1Gain": 0.03,
+      "searchTop8": 0.95,
+      "corrections": 10,
+      "spoils": 4,
+      "medianElapsedMs": 79.53559956513345
+    }
+  },
+  "disjointConfirmation": {
+    "positions": 1000,
+    "offset": 200,
+    "directTop1": 0.546,
+    "fast": {
+      "depth": 2,
+      "internalWidth": 2,
+      "rootPriorWeight": 0.2,
+      "searchTop1": 0.535,
+      "top1Gain": -0.011,
+      "searchTop8": 0.917,
+      "medianElapsedMs": 27.581033762544394
+    },
+    "wide": {
+      "depth": 2,
+      "internalWidth": 8,
+      "rootPriorWeight": 0.2,
+      "searchTop1": 0.54,
+      "top1Gain": -0.006,
+      "searchTop8": 0.921,
+      "medianElapsedMs": 79.95235198177397
+    },
+    "deep": {
+      "depth": 3,
+      "internalWidth": 2,
+      "rootPriorWeight": 0.4,
+      "searchTop1": 0.539,
+      "top1Gain": -0.007,
+      "searchTop8": 0.933,
+      "top8Gain": 0.003,
+      "medianElapsedMs": 62.55118199624121
+    }
+  },
+  "reason": "The apparent tuning gain did not reproduce on the disjoint 1,000-position confirmation set. All three selected configurations reduced Top-1 accuracy; only the depth-three configuration produced a small Top-8 point gain. Keep the implementation experimental and improve tree-state value supervision before another search promotion attempt.",
+  "evidence": [
+    "reports/selective-minimax-round12-tuning-summary.json",
+    "reports/selective-minimax-round12-confirmation-summary.json"
+  ]
+}
