@@ -1,0 +1,38 @@
+{
+  "schema": "jev-choice-model-candidate-decision-v1",
+  "date": "2026-10-01",
+  "decision": "reject",
+  "candidate": {
+    "path": "models/choice-middle-round11-valuefix-128x8-gpu0.pt",
+    "sha256": "b19dd3f9d32530ad9464d9a5a304ceff11002f43ed7aafd57f524b5487a345ae",
+    "selectedEpoch": 1,
+    "selectionMetric": "top8"
+  },
+  "production": {
+    "path": "models/choice-middle-round10-pv8-128x8-gpu0.pt",
+    "sha256": "7ba265827ad8a3519f0439407d18d8ef445f823d4c8a0ccb5bd8b50df22e39c0"
+  },
+  "strictMiddle150k": {
+    "positions": 14998,
+    "candidateTop1Gain": 0.00033337778370445825,
+    "candidateTop1Gain95GameBootstrap": [-0.002069702229937241, 0.002936073668757507],
+    "candidateTop8Gain": 0.0009334577943725941,
+    "candidateTop8Gain95GameBootstrap": [-0.00046542553191489364, 0.0023313128621861054],
+    "productionValueMae": 0.18625019567619086,
+    "candidateValueMae": 0.18587528862846997
+  },
+  "priorIndependent": {
+    "positions": 1869,
+    "candidateTop1Gain": -0.0021401819154628354,
+    "candidateTop1Gain95GameBootstrap": [-0.00881488736532811, 0.004491858506457047],
+    "candidateTop8Gain": 0.01016586409844833,
+    "candidateTop8Gain95GameBootstrap": [0.005321722302854378, 0.015786608600979857]
+  },
+  "reason": "The corrected value supervision slightly improved value MAE and independent Top-8 recall, but strict Top-8 improvement was not statistically resolved and independent Top-1 regressed. The candidate is not unambiguously better than production, so the production manifest remains unchanged.",
+  "evidence": [
+    "reports/compare-choice-middle-round11-valuefix-128x8-gpu0-vs-round10-middle150.json",
+    "reports/choice-middle-round11-valuefix-128x8-gpu0-round10-value-baseline.json",
+    "reports/choice-middle-round11-valuefix-128x8-gpu0-middle150-test.json",
+    "reports/compare-choice-middle-round11-valuefix-128x8-gpu0-vs-round10-prior-independent.json"
+  ]
+}
