@@ -321,8 +321,11 @@ def load_rows(filename):
 def load_teacher_sources(filenames, history_filename=None):
     """Combine teacher files, attaching validated history to the last source."""
     if len(filenames) == 1:
-        rows = load_rows(filenames[0])
-        return attach_history_labels(rows, history_filename, filenames[0]) if history_filename else rows
+        source_rows = load_rows(filenames[0])
+        if history_filename:
+            source_rows = attach_history_labels(source_rows, history_filename, filenames[0])
+        return [{**row, "game": str(row.get("splitGroup", f"0:{row['game']}")),
+                 "_sourceIndex": 0} for row in source_rows]
     rows = []
     for source_index, filename in enumerate(filenames):
         source_rows = load_rows(filename)

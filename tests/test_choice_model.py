@@ -194,6 +194,16 @@ class ChoiceModelTests(unittest.TestCase):
             self.assertEqual(len({row["game"] for row in rows}), 8)
             self.assertEqual(len(rows), 8)
 
+    def test_single_source_uses_same_namespaced_split_group_as_combined_source_zero(self):
+        with tempfile.TemporaryDirectory() as directory:
+            filename = Path(directory) / "teacher.jsonl"
+            row = {"kind": "position", "game": "game-3", "fen": "board w",
+                   "legal": ["a0a1"], "best": "a0a1"}
+            filename.write_text(json.dumps(row) + "\n")
+            loaded = choice_model.load_teacher_sources([filename])
+            self.assertEqual(loaded[0]["game"], "0:game-3")
+            self.assertEqual(choice_model.source_index(loaded[0]), 0)
+
     def test_derived_source_can_share_parent_game_split_without_losing_source_identity(self):
         with tempfile.TemporaryDirectory() as directory:
             parent = Path(directory) / "parent.jsonl"
