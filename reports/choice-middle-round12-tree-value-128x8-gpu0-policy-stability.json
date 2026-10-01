@@ -1,0 +1,8 @@
+{
+  "schema": "jev-value-only-policy-stability-v1",
+  "policyAndTrunkTensorCount": 123,
+  "changedPolicyAndTrunkTensors": [],
+  "temperatureA": 0.7879904225539432,
+  "temperatureB": 0.7879904225539432,
+  "bitStable": true
+}

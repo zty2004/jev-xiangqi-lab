@@ -1,0 +1,62 @@
+{
+  "schema": "jev-choice-model-candidate-decision-v1",
+  "date": "2026-10-01",
+  "decision": "reject-for-production",
+  "candidate": {
+    "path": "models/choice-middle-round12-tree-value-128x8-gpu0.pt",
+    "sha256": "9f0d3f32f81f2e9a33cca8ec7ddaba39582083ffafdd1566891b0b45f5f40b21",
+    "trainingMode": "value-only",
+    "selectedEpoch": 15
+  },
+  "production": {
+    "path": "models/choice-middle-round10-pv8-128x8-gpu0.pt",
+    "sha256": "7ba265827ad8a3519f0439407d18d8ef445f823d4c8a0ccb5bd8b50df22e39c0"
+  },
+  "treeDistillation": {
+    "positions": 4630,
+    "pikafishNodesPerPosition": 100000,
+    "multipv": 8,
+    "sha256": "b771b8313bcc09f8ac8725dd350040affdd42202128a6e831a33882f5e145aa7"
+  },
+  "policyStability": {
+    "policyAndTrunkTensors": 123,
+    "changedTensors": 0,
+    "temperaturePreserved": true,
+    "bitStable": true
+  },
+  "strictMiddle150kValue": {
+    "positions": 14998,
+    "productionMae": 0.18625000806785635,
+    "candidateMae": 0.18403414349610803,
+    "maeReduction95GameBootstrap": [0.0013324165752799516, 0.003142305128586629],
+    "productionMse": 0.06437748329537726,
+    "candidateMse": 0.06323957300283434,
+    "mseReduction95GameBootstrap": [0.0006222794539780509, 0.0017116420633104187]
+  },
+  "heldOutTreeValue": {
+    "positions": 489,
+    "productionMae": 0.2575088031873286,
+    "candidateMae": 0.2570554177965521,
+    "maeReduction95GameBootstrap": [-0.005650832511283435, 0.00644982411533271],
+    "productionMse": 0.11199522778057673,
+    "candidateMse": 0.11406588041255544,
+    "mseReduction95GameBootstrap": [-0.007417247826559757, 0.002633016836263965]
+  },
+  "allNodePuctPilot": {
+    "positions": 200,
+    "simulations": 128,
+    "directTop1": 0.505,
+    "productionSearchTop1": 0.485,
+    "candidateSearchTop1": 0.49,
+    "candidateSearchTop8": 0.945,
+    "corrections": 0,
+    "spoils": 3
+  },
+  "reason": "The frozen-policy candidate significantly improves value error on the broad root holdout and slightly reduces the prior PUCT regression. Its held-out off-principal tree value gain is unresolved, tree MSE is worse at the point estimate, and PUCT still underperforms the unchanged direct policy. Keep Round 10 in production and retain Round 12 only as an experimental value checkpoint.",
+  "evidence": [
+    "reports/compare-choice-middle-round12-tree-value-128x8-gpu0-vs-round10-tree.json",
+    "reports/compare-choice-middle-round12-tree-value-128x8-gpu0-vs-round10-middle150-value.json",
+    "reports/choice-middle-round12-tree-value-128x8-gpu0-policy-stability.json",
+    "reports/jev-all-node-puct-choice-middle-round12-tree-value-128x8-gpu0-middle150-pilot.json"
+  ]
+}

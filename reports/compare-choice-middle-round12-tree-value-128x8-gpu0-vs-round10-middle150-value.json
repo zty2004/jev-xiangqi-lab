@@ -1,0 +1,38 @@
+{
+  "schema": "jev-choice-value-comparison-v1",
+  "positions": 14998,
+  "games": 2641,
+  "phase": "middlegame",
+  "testSourceIndex": null,
+  "bootstrapSamples": 2000,
+  "modelA": {
+    "path": "models/choice-middle-round10-pv8-128x8-gpu0.pt",
+    "sha256": "7ba265827ad8a3519f0439407d18d8ef445f823d4c8a0ccb5bd8b50df22e39c0",
+    "metrics": {
+      "positions": 14998,
+      "effectiveWeight": 14998.0,
+      "mae": 0.18625000806785635,
+      "mse": 0.06437748329537726
+    }
+  },
+  "modelB": {
+    "path": "models/choice-middle-round12-tree-value-128x8-gpu0.pt",
+    "sha256": "9f0d3f32f81f2e9a33cca8ec7ddaba39582083ffafdd1566891b0b45f5f40b21",
+    "metrics": {
+      "positions": 14998,
+      "effectiveWeight": 14998.0,
+      "mae": 0.18403414349610803,
+      "mse": 0.06323957300283434
+    }
+  },
+  "maeReductionAminusB": 0.002215864571748327,
+  "maeReduction95GameBootstrap": [
+    0.0013324165752799516,
+    0.003142305128586629
+  ],
+  "mseReductionAminusB": 0.0011379102925429263,
+  "mseReduction95GameBootstrap": [
+    0.0006222794539780509,
+    0.0017116420633104187
+  ]
+}
