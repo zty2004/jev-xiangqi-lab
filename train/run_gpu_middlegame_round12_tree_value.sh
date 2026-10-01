@@ -7,7 +7,8 @@ init="${INIT_MODEL:-models/choice-middle-round10-pv8-128x8-gpu0.pt}"
 middle150="${MIDDLE_150K:-data/teacher-ccpd-all-middle-150k-nodes250k.jsonl}"
 tree="${TREE_LABELLED:-data/teacher-ccpd-middle-tree-r12-pilot-labelled.jsonl}"
 
-if ! nvidia-smi --query-gpu=uuid --format=csv,noheader | grep -Fxq "$gpu_uuid"; then
+gpu_inventory="$(nvidia-smi --query-gpu=uuid --format=csv,noheader)"
+if ! grep -Fxq "$gpu_uuid" <<<"$gpu_inventory"; then
   echo "Required GPU UUID is unavailable: $gpu_uuid" >&2
   exit 1
 fi
