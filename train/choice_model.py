@@ -22,6 +22,7 @@ MOVE_DELTAS = ([(dx, 0) for dx in range(-8, 9) if dx] +
                [(dx, dy) for dy in (-1, 1) for dx in (-1, 1)] +
                [(dx, dy) for dy in (-2, 2) for dx in (-2, 2)])
 MOVE_DELTA_INDEX = {delta: index for index, delta in enumerate(MOVE_DELTAS)}
+SPLIT_SCHEMA = "stable-game-hash-v1"
 
 
 def game_phase(fen):
@@ -367,13 +368,20 @@ def attach_history_labels(rows, filename, teacher_filename):
     return enriched
 
 
+def split_bucket(game, seed):
+    payload = f"{seed}:{game}".encode("utf-8")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") % 10
+
+
 def split_rows(rows, seed):
     games = sorted({row["game"] for row in rows})
     if len(games) < 4:
         raise ValueError("need at least four teacher games for disjoint train/validation/calibration/test splits")
-    shuffled = games[:]
-    random.Random(seed).shuffle(shuffled)
-    game_sets = [set(shuffled[index::10]) for index in (0, 1, 2)]
+    # A game's assignment must not change when unrelated sources or newer
+    # games are added.  This keeps parent and derived search-tree positions
+    # isolated across every later training and evaluation run.
+    game_sets = [{game for game in games if split_bucket(game, seed) == index}
+                 for index in (0, 1, 2)]
     if not all(game_sets):
         raise ValueError("need at least three held-out teacher games")
     # Test has first claim on a repeated position; no identical board/turn can cross splits.
@@ -670,6 +678,7 @@ def train(args):
                         "epoch": epoch, "validation_loss": validation_loss,
                         "validation_top1": accuracy, "validation_top8": top8,
                         "seed": args.seed, "teacher_sha256": sha256_file(args.data[0]) if len(args.data) == 1 else None,
+                        "split_schema": SPLIT_SCHEMA,
                         "source_weights": source_weights,
                         "training_only_row_sources": sorted(training_only_sources),
                         "initial_model": ({"file": str(args.init_model), "sha256": sha256_file(args.init_model)}

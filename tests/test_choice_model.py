@@ -213,9 +213,9 @@ class ChoiceModelTests(unittest.TestCase):
 
     def test_splits_keep_games_and_positions_disjoint(self):
         rows = [{"game": game, "fen": f"unique-{game} w", "legal": ["a0a1"], "best": "a0a1"}
-                for game in range(20)]
+                for game in range(100)]
         rows.extend({"game": game, "fen": "repeated w", "legal": ["a0a1"], "best": "a0a1"}
-                    for game in range(20))
+                    for game in range(100))
         splits = choice_model.split_rows(rows, 7)
         self.assertEqual(len(splits), 4)
         self.assertTrue(all(splits))
@@ -224,6 +224,20 @@ class ChoiceModelTests(unittest.TestCase):
             for right in range(left + 1, 4):
                 self.assertFalse({row["game"] for row in splits[left]} & {row["game"] for row in splits[right]})
                 self.assertFalse({row["fen"] for row in splits[left]} & {row["fen"] for row in splits[right]})
+
+    def test_game_split_is_stable_when_unrelated_games_are_added(self):
+        def rows(prefix, count):
+            return [{"game": f"{prefix}-{game}", "fen": f"{prefix}-{game} w",
+                     "legal": ["a0a1"], "best": "a0a1"} for game in range(count)]
+        base = rows("base", 100)
+        extended = base + rows("new", 100)
+        before = {row["game"]: split_index for split_index, split in
+                  enumerate(choice_model.split_rows(base, 23)) for row in split}
+        after = {row["game"]: split_index for split_index, split in
+                 enumerate(choice_model.split_rows(extended, 23)) for row in split
+                 if row["game"].startswith("base-")}
+        self.assertEqual(before, after)
+        self.assertEqual(choice_model.SPLIT_SCHEMA, "stable-game-hash-v1")
 
     def test_multiclass_scores_for_uniform_binary_choice(self):
         predictions = [(torch.tensor([0.0, 0.0]), 0), (torch.tensor([0.0, 0.0]), 1)]
